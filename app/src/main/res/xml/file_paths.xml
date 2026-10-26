@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 8-9 only: received files live in the app's external folder and are shared through FileProvider. -->
+<paths>
+    <external-files-path name="received" path="." />
+    <files-path name="received_internal" path="." />
+</paths>

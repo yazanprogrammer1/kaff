@@ -34,6 +34,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.kaff.app.R
 import dev.kaff.app.ui.animation.HeroHand
+import dev.kaff.app.ui.animation.sharedHero
 import dev.kaff.app.ui.components.GlassIconButton
 import dev.kaff.app.ui.components.HeroText
 import dev.kaff.app.ui.components.KaffBackground
@@ -106,7 +107,7 @@ fun HomeScreen(
                 StatusPill(
                     stringResource(if (state.standbyOn) R.string.home_status_standby else R.string.home_status_camera_off),
                 )
-                HeroHand()
+                HeroHand(Modifier.sharedHero("hero-hand"))
                 HeroText(stringResource(R.string.home_tagline), stringResource(R.string.home_subtitle))
             }
 
