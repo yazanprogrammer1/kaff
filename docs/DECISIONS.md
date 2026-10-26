@@ -19,6 +19,89 @@ Decisions made while building Kaff, with the reasoning. Newest phase last.
 - **Auto-timeout:** `GestureCamera` restarts its timer on every frame that contains a hand (`collectLatest` over an activity counter, so it is thread-safe and cheap). Timeout puts the tracker in `paused` and unbinds the camera.
 - **Battery guard:** battery saver limits analysis to about 15 fps; thermal status `SEVERE` or worse pauses analysis (API 29+).
 
+## Phase 2 — Transfer
+
+- **Protocol extended deliberately** (see `PROTOCOL.md`): `sha256` in OFFER so the receiver can
+  verify before saving, a `file` header to map FILE payloads to offer indexes, and a 16 KB
+  thumbnail cap so OFFER fits Nearby's 32 KB BYTES limit.
+- **Transport interface in domain** (`NearbyTransport` plus `TransportEvent`). The production class
+  wraps `ConnectionsClient`; `FakeNearbyNetwork` links fake transports in memory and runs messages
+  through the real codec, so the two-phone flow is tested on the JVM.
+- **Saving without storage permissions.** Android 10+ uses MediaStore with `IS_PENDING` while
+  hashing (images → `Pictures/Kaff`, videos → `Movies/Kaff`, others → `Download/Kaff`). Android
+  8–9 cannot write to shared storage without `WRITE_EXTERNAL_STORAGE`, which the brief forbids, so
+  files land in the app's external folder and open through a `FileProvider`. The Done screen says
+  so ("saved to app files").
+- **Video goes to `Movies/Kaff`**, not `Download/Kaff`, so it shows up in the gallery like photos.
+- **No distance in meters.** Nearby does not report distance; the peer card says "nearby" instead
+  of inventing a number.
+- **History stores metadata only** (name, size, type, peer, result, duration), capped at 500 rows.
+- **No custom Result wrapper.** Each boundary returns the most specific type (`Boolean`, `Long?`,
+  `SaveResult`), which reads better than a generic wrapper.
+
+## Phase 3 — Gesture-driven flow
+
+- **Explicit reducers** (`SendReducer`, `ReceiveReducer`): pure `(state, event) → (state, effects)`
+  functions with exhaustive `when` over sealed states. Effects run in `SessionRunner`, which
+  processes events strictly in order. There are 59 reducer tests plus 10 end-to-end flow tests.
+- **Pairing is the security gate.** The receiver calls `acceptConnection` only after the user
+  confirms the digits, so before that nothing can be received. Gestures and Accept/Decline are
+  ignored outside `Offered`, and a ViewModel test proves a palm during pairing does nothing.
+- **Connection persists across attempts within a session, but never idles.** The brief asks to
+  always disconnect after completion or timeout. Disconnecting after every armed timeout would
+  force a new digit check for each retry. So: completion, failure and leaving the screen always
+  disconnect; an armed timeout keeps the confirmed link for a new fist; a paired link with no
+  activity is dropped after 90 s.
+- **Palm hold is measured in camera time** (MediaPipe timestamps), so a dropped frame or a slow
+  UI cannot fake a hold.
+- **One role at a time.** Opening Send stops the receive session (and with it Standby
+  advertising); Standby resumes once both roles are idle.
+- **Auto-connect** to the first discovered phone, with chips to switch while connecting.
+
+## Phase 4 — Smart wake
+
+- **Standby = foreground service `connectedDevice`** with an ongoing notification and a Stop
+  action. It only advertises and listens to the accelerometer at `SENSOR_DELAY_NORMAL`; it never
+  opens the camera.
+- **Shake in the background.** Android blocks background activity starts. If the user granted
+  "display over other apps" (the bubble permission), a shake opens the receive screen directly;
+  otherwise it posts a heads-up notification to tap. Full-screen intents are not used: Android 14
+  reserves them for calls and alarms.
+- **Floating bubble = foreground service `specialUse`**, with the subtype declared in the manifest.
+  Tapping opens **Receive**, because that screen needs no file picking and the camera starts as
+  soon as an offer arrives.
+- **Two Quick Settings tiles** (Send and Receive), using `startActivityAndCollapse(PendingIntent)`
+  on Android 14+. On Android 13+, Settings offers the system "add tile" prompt.
+- **Services restart only from the foreground.** Opt-in services are restored when the app opens;
+  starting a foreground service from the background is refused on Android 12+, and the code
+  handles that instead of working around it.
+- **Heads-up only when not visible.** `IncomingNotifier` checks `ProcessLifecycleOwner` and posts
+  to an `IMPORTANCE_HIGH` channel only when Kaff is in the background, with a 60 s timeout.
+
+## Phase 5 — Polish
+
+- **Motion:** spring lift-off with tilt and a particle trail when the fist lands, pulse rings with
+  a hold arc that fills during the palm hold, blur-to-sharp scale for the received file (blur needs
+  Android 12+; older versions get scale and fade), a shared hero hand between Home and Receive, and
+  a breathing open-to-fist hero on Home. Everything falls back to static or fade when the system
+  animator scale is 0.
+- **Haptics:** heavy click on grab, click on accept, double click on attention, and success/error
+  waveforms. An optional chime uses `ToneGenerator`, so no audio asset is bundled.
+- **Accessibility:** every icon button has a label, state changes are polite live regions, section
+  titles are headings, pairing digits are read one by one, touch targets are ≥ 48 dp, and the
+  hero and settings screens scroll at large font scales.
+
+## Phase 6 — Release
+
+- **R8 verified** on `assembleRelease`. MediaPipe and protobuf are kept broadly; it costs dex size
+  but avoids runtime reflection crashes that cannot be caught without a device.
+- **App size:** the universal APK is about 57 MB (MediaPipe ships native code for four ABIs). Ship
+  an App Bundle (`bundleRelease`) so each phone downloads only its ABI (about 25 MB).
+- **Release signing** uses the debug key so the release build can be installed for testing.
+  Replace it before publishing.
+- **CI** runs build, unit tests, lint, compiles the instrumented tests, and builds the R8 release
+  on every push and pull request.
+
 ## Needs device testing
 
 These cannot be verified without real phones.
@@ -29,3 +112,29 @@ These cannot be verified without real phones.
 - [ ] Skeleton overlay lines up with the preview on phones whose preview aspect is not 4:3.
 - [ ] GPU delegate works; on devices where it fails, the CPU fallback still reaches ≥ 15 fps.
 - [ ] Camera turns off after the configured timeout and wakes on tap.
+
+### Two-phone checklist
+
+1. Install on two phones (Android 8+, Google Play services). Grant permissions on both.
+2. Phone B: **Receive**. Phone A: **Start sending** → pick a photo.
+3. Both screens show the **same 4 digits**. B taps "code matches"; A shows "connected".
+4. A: make a **fist** at the front camera → the file lifts, haptic plays, 5 s countdown starts.
+5. B: the offer card appears with a thumbnail. **Open palm** for about 0.7 s → the hold arc
+   fills → transfer starts.
+6. B lands on Done: photo is in `Pictures/Kaff`, "Open photo" works, speed and time are shown.
+   A shows "delivered".
+7. Repeat with a 200 MB video and with 3 mixed files (one PDF) → video in `Movies/Kaff`, PDF in
+   `Download/Kaff`.
+8. Let the 5 s window expire → A shows "time ran out", B shows "offer expired"; a new fist works
+   without re-pairing.
+9. Decline on B → A shows "declined". Decline the pairing → A goes back to searching.
+10. Turn on airplane mode on A mid-transfer → both show a disconnect error; nothing partial in
+    the gallery.
+11. Standby on B, app in background: A sends → B gets a heads-up notification → tap → receive
+    screen → palm.
+12. Quick Settings tiles, bubble tap, and shake (with and without the overlay permission).
+13. Battery saver on → Lab FPS drops to about 15. Hot phone (thermal SEVERE) → "phone is hot".
+14. Leave any screen mid-flow → no lingering Nearby connection (B is discoverable again only if
+    Standby is on).
+15. Instrumented UI tests: `./gradlew connectedDebugAndroidTest` (no device was available while
+    building, so they were compiled but not run).

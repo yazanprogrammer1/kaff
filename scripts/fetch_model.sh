@@ -15,6 +15,6 @@ fi
 
 mkdir -p "$(dirname "$TARGET")"
 echo "Downloading $MODEL_URL"
-curl -fL --retry 3 -o "$TARGET.part" "$MODEL_URL"
+curl -fsSL --retry 3 -o "$TARGET.part" "$MODEL_URL"
 mv "$TARGET.part" "$TARGET"
 echo "Saved $(wc -c < "$TARGET") bytes to $TARGET"
