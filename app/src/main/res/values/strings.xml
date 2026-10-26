@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">كفّ</string>
+
+    <!-- Common -->
+    <string name="action_close">إغلاق</string>
+    <string name="action_cancel">إلغاء</string>
+    <string name="action_back">رجوع</string>
+    <string name="action_settings">الإعدادات</string>
+    <string name="action_retry">حاول مرة ثانية</string>
+    <string name="action_continue">متابعة</string>
+    <string name="action_yes">نعم</string>
+    <string name="action_no">لا</string>
+
+    <!-- Home -->
+    <string name="home_status_camera_off">الكاميرا مطفية · توفير البطارية</string>
+    <string name="home_status_standby">وضع الاستعداد شغّال · الكاميرا مطفية</string>
+    <string name="home_tagline">ارفع إيدك.. وانقل</string>
+    <string name="home_subtitle">اختار الملف، اقبض عليه، وافتح إيدك قدام الجوال الثاني.</string>
+    <string name="home_start_send">ابدأ الإرسال</string>
+    <string name="home_receive">استقبال</string>
+    <string name="home_history">السجل</string>
+    <string name="home_lab">مختبر الإيماءات</string>
+    <string name="wake_shake">هز الجوال</string>
+    <string name="wake_tile">زر سريع</string>
+    <string name="wake_bubble">فقاعة عائمة</string>
+
+    <!-- Camera states -->
+    <string name="camera_asleep">الكاميرا نايمة لتوفير البطارية</string>
+    <string name="camera_wake">شغّل الكاميرا</string>
+    <string name="camera_thermal">الجوال حار، وقّفنا تحليل الكاميرا مؤقتاً</string>
+    <string name="camera_battery_saver">توفير البطارية: التحليل أبطأ شوي</string>
+    <string name="camera_failed">ما قدرنا نشغّل تتبّع اليد على هذا الجهاز. استخدم الأزرار.</string>
+    <string name="gesture_fist_confidence">قبضة · ثقة %1$d٪</string>
+    <string name="gesture_palm_confidence">كف مفتوح · ثقة %1$d٪</string>
+
+    <!-- Send -->
+    <string name="send_pick_title">وش تبي ترسل؟</string>
+    <string name="send_pick_body">اختار صورة أو فيديو أو أي ملف، وبعدها اقبض يدك عليه.</string>
+    <string name="send_pick_media">صور وفيديو</string>
+    <string name="send_pick_files">أي ملف</string>
+    <string name="send_change_files">تغيير</string>
+    <string name="send_preparing">نجهّز الملف…</string>
+    <string name="send_searching">ندوّر على جوال قريب…</string>
+    <string name="send_searching_hint">افتح «استقبال» في الجوال الثاني.</string>
+    <string name="send_peer_ready">جوال قريب جاهز</string>
+    <string name="send_peer_connecting">نتصل بالجوال…</string>
+    <string name="send_peer_pairing">ننتظر تأكيد الرمز</string>
+    <string name="send_peer_subtitle">%1$s · قريب منك</string>
+    <string name="send_connected">متصل</string>
+    <string name="send_pairing_code">الرمز: %1$s · لازم يطابق الجوال الثاني</string>
+    <string name="send_make_fist">اقبض يدك على الملف</string>
+    <string name="send_make_fist_hint">سكّر يدك قدام الكاميرا عشان تمسكه.</string>
+    <string name="send_manual">إرسال بدون إيماءة</string>
+    <string name="send_grabbed_image">تم مسك الصورة</string>
+    <string name="send_grabbed_video">تم مسك الفيديو</string>
+    <string name="send_grabbed_file">تم مسك الملف</string>
+    <string name="send_open_hand_other">افتح يدك أمام الجوال الثاني</string>
+    <string name="send_sending">نرسل… %1$d٪</string>
+    <string name="send_waiting_receipt">نتأكد إن الملف وصل سليم…</string>
+    <string name="send_done_title">وصل للجوال الثاني</string>
+    <string name="send_done_body">%1$s · %2$s</string>
+    <string name="send_again">نقل ملف ثاني</string>
+    <plurals name="send_countdown">
+        <item quantity="zero">انتهى الوقت.</item>
+        <item quantity="one">عندك ثانية وحدة قبل ما ينتهي الطلب.</item>
+        <item quantity="two">عندك ثانيتين قبل ما ينتهي الطلب.</item>
+        <item quantity="few">عندك %d ثواني قبل ما ينتهي الطلب.</item>
+        <item quantity="many">عندك %d ثانية قبل ما ينتهي الطلب.</item>
+        <item quantity="other">عندك %d ثانية قبل ما ينتهي الطلب.</item>
+    </plurals>
+    <plurals name="file_count">
+        <item quantity="zero">ولا ملف</item>
+        <item quantity="one">ملف واحد</item>
+        <item quantity="two">ملفين</item>
+        <item quantity="few">%d ملفات</item>
+        <item quantity="many">%d ملف</item>
+        <item quantity="other">%d ملف</item>
+    </plurals>
+
+    <!-- Receive -->
+    <string name="receive_waiting_title">جاهز للاستلام</string>
+    <string name="receive_waiting_body">خلّ الجوال الثاني يختار ملف ويقبض يده عليه.</string>
+    <string name="receive_visible_as">ظاهر للأجهزة القريبة باسم: %1$s</string>
+    <string name="receive_pair_title">%1$s يبي يتصل</string>
+    <string name="receive_pair_code">الرمز</string>
+    <string name="receive_pair_hint">تأكد إن نفس الرمز ظاهر في الجوال الثاني، بعدها اضغط «الرمز مطابق».</string>
+    <string name="receive_pair_confirm">الرمز مطابق</string>
+    <string name="receive_connected">متصل بـ %1$s · ننتظر الملف</string>
+    <string name="receive_offer_image">صورة واردة من %1$s</string>
+    <string name="receive_offer_video">فيديو وارد من %1$s</string>
+    <string name="receive_offer_file">ملف وارد من %1$s</string>
+    <string name="receive_offer_many">%1$s واردة من %2$s</string>
+    <string name="receive_verified">مشفّر ومؤكد · الرمز %1$s</string>
+    <string name="receive_open_hand">افتح يدك للاستلام</string>
+    <string name="receive_hold_hint">ثبّت اليد لحظة للتأكيد</string>
+    <string name="receive_accept">قبول</string>
+    <string name="receive_reject">رفض</string>
+    <string name="receive_receiving">نستلم… %1$d٪</string>
+    <string name="receive_saving">نتحقق من الملف ونحفظه…</string>
+    <plurals name="receive_watching">
+        <item quantity="zero">الكاميرا تراقب</item>
+        <item quantity="one">الكاميرا تراقب · ثانية</item>
+        <item quantity="two">الكاميرا تراقب · ثانيتين</item>
+        <item quantity="few">الكاميرا تراقب · %d ثواني</item>
+        <item quantity="many">الكاميرا تراقب · %d ثانية</item>
+        <item quantity="other">الكاميرا تراقب · %d ثانية</item>
+    </plurals>
+
+    <!-- Done -->
+    <string name="done_title_image">وصلت الصورة</string>
+    <string name="done_title_video">وصل الفيديو</string>
+    <string name="done_title_file">وصل الملف</string>
+    <string name="done_title_many">وصلت %1$s</string>
+    <string name="done_meta">%1$s · %2$s · في %3$s</string>
+    <string name="done_speed">%1$s/ث</string>
+    <string name="done_saved_gallery">انحفظت في المعرض</string>
+    <string name="done_saved_downloads">انحفظت في التنزيلات</string>
+    <string name="done_saved_app">انحفظت في ملفات التطبيق</string>
+    <string name="done_open_image">فتح الصورة</string>
+    <string name="done_open_video">فتح الفيديو</string>
+    <string name="done_open_file">فتح الملف</string>
+    <string name="done_open_failed">ما في تطبيق يفتح هذا النوع من الملفات.</string>
+    <string name="done_transfer_another">نقل ملف ثاني</string>
+
+    <!-- Units -->
+    <string name="size_bytes">%1$s بايت</string>
+    <string name="size_kb">%1$s كيلو</string>
+    <string name="size_mb">%1$s ميجا</string>
+    <string name="size_gb">%1$s جيجا</string>
+    <string name="duration_seconds">%1$s ثانية</string>
+
+    <!-- Errors -->
+    <string name="error_title">ما زبطت</string>
+    <string name="error_armed_timeout">انتهى الوقت قبل ما يفتح الثاني يده. اقبض يدك مرة ثانية.</string>
+    <string name="error_rejected">الجوال الثاني رفض الملف.</string>
+    <string name="error_disconnected">انقطع الاتصال بالجوال الثاني.</string>
+    <string name="error_connection_failed">ما قدرنا نتصل. قرّبوا الجوالين وحاولوا مرة ثانية.</string>
+    <string name="error_transfer_failed">صار خطأ أثناء النقل.</string>
+    <string name="error_integrity">الملف وصل ناقص أو متغيّر، فما حفظناه.</string>
+    <string name="error_save_failed">ما قدرنا نحفظ الملف في جوالك.</string>
+    <string name="error_cancelled_by_peer">الجوال الثاني ألغى الطلب.</string>
+    <string name="error_offer_expired">انتهى الطلب قبل ما تقبله. اطلب من المرسل يعيد.</string>
+    <string name="error_nearby_unavailable">خدمة الأجهزة القريبة مو متاحة. تأكد من البلوتوث والواي فاي وخدمات Google Play.</string>
+    <string name="error_file_unreadable">ما قدرنا نقرأ الملف المختار.</string>
+    <string name="error_pairing_declined">رفضت الاتصال.</string>
+    <string name="error_version">نسخة كفّ في الجوال الثاني مختلفة. حدّثوا التطبيق.</string>
+    <string name="error_watch_timeout">ما شفنا يدك. الطلب انتهى.</string>
+    <string name="error_protocol">وصلتنا رسالة غير مفهومة من الجوال الثاني.</string>
+
+    <!-- Settings -->
+    <string name="settings_title">الإعدادات</string>
+    <string name="settings_section_wake">طرق التشغيل</string>
+    <string name="settings_shake">هز الجوال</string>
+    <string name="settings_shake_desc">هزّة قوية تفتح شاشة الاستلام وكفّ مفتوح، أو وقت وضع الاستعداد.</string>
+    <string name="settings_tile">زر الإعدادات السريعة</string>
+    <string name="settings_tile_desc">أضف زر «كفّ · إرسال» أو «كفّ · استقبال» من لوحة الإعدادات السريعة.</string>
+    <string name="settings_tile_add">إضافة الزر</string>
+    <string name="settings_bubble">فقاعة عائمة</string>
+    <string name="settings_bubble_desc">فقاعة صغيرة فوق التطبيقات تفتح كفّ بلمسة. تحتاج إذن «الظهور فوق التطبيقات»، وتقدر توقفها من الإشعار.</string>
+    <string name="settings_bubble_permission">نحتاج إذن الظهور فوق التطبيقات. افتح الإعدادات وفعّله لكفّ.</string>
+    <string name="settings_standby">وضع الاستعداد</string>
+    <string name="settings_standby_desc">كفّ يبقى ظاهر للأجهزة القريبة مع إشعار ثابت فيه زر «إيقاف». الكاميرا ما تشتغل إلا لما تفتح التطبيق.</string>
+    <string name="settings_section_device">الجهاز</string>
+    <string name="settings_device_name">اسم الجهاز</string>
+    <string name="settings_device_name_hint">يظهر للأجهزة القريبة (الافتراضي: %1$s)</string>
+    <string name="settings_timeout">إطفاء الكاميرا تلقائياً بعد</string>
+    <string name="settings_timeout_value">%1$d ثانية</string>
+    <string name="settings_section_feedback">الإحساس</string>
+    <string name="settings_haptics">الاهتزاز</string>
+    <string name="settings_sound">صوت عند الوصول</string>
+    <string name="settings_section_gesture">الإيماءات</string>
+    <string name="settings_sensitivity">حساسية الإيماءة</string>
+    <string name="settings_sensitivity_strict">دقيقة</string>
+    <string name="settings_sensitivity_loose">سريعة</string>
+    <string name="settings_strict_palm">تأكد إن باطن الكف قدام الكاميرا</string>
+    <string name="settings_open_lab">جرّب في مختبر الإيماءات</string>
+    <string name="settings_section_privacy">الخصوصية والحدود</string>
+    <string name="settings_privacy_body">الكاميرا تشتغل بس وأنت فاتح شاشة الإرسال أو الاستلام، وتطفى لحالها. تحليل اليد كله داخل جوالك، والملف يروح بس للجوال اللي أكدت رمزه. ما في سيرفر ولا إنترنت.</string>
+    <string name="settings_limits_body">بصراحة: أندرويد ما يسمح بكاميرا شغالة بالخلفية، كفّ يشتغل بين جوالات أندرويد بس، والإيماءة مجرد تشغيل مو إثبات هوية. الأمان يجي من رمز الاقتران وزر القبول.</string>
+
+    <!-- Gesture Lab -->
+    <string name="lab_title">مختبر الإيماءات</string>
+    <string name="lab_hint">اقبض يدك وافتحها قدام الكاميرا. الإيماءة تتأكد بعد ما تثبت لحظة.</string>
+    <string name="lab_gesture_none">ما في إيماءة</string>
+    <string name="lab_gesture_open">كف مفتوح</string>
+    <string name="lab_gesture_fist">قبضة</string>
+    <string name="lab_no_hand">ما في يد</string>
+    <string name="lab_raw">لحظي</string>
+    <string name="lab_stable">مؤكّد</string>
+    <string name="lab_confidence">الثقة</string>
+    <string name="lab_fps">إطار/ث</string>
+    <string name="lab_hand">اليد</string>
+    <string name="lab_hand_left">يسار</string>
+    <string name="lab_hand_right">يمين</string>
+    <string name="lab_palm_facing">باطن الكف للكاميرا</string>
+    <string name="lab_fist_score">قبضة</string>
+    <string name="lab_open_score">كف</string>
+    <string name="lab_percent">%1$d٪</string>
+    <string name="lab_fps_value">%1$.0f</string>
+
+    <!-- History -->
+    <string name="history_title">السجل</string>
+    <string name="history_empty_title">ما في نقل للحين</string>
+    <string name="history_empty_body">أول ملف ترسله أو تستلمه بيظهر هنا.</string>
+    <string name="history_sent">أرسلت إلى %1$s</string>
+    <string name="history_received">استلمت من %1$s</string>
+    <string name="history_failed">ما اكتمل</string>
+    <string name="history_clear">مسح السجل</string>
+
+    <!-- Permissions -->
+    <string name="perm_title">نحتاج كم إذن</string>
+    <string name="perm_body">عشان كفّ يشتغل، نطلب بس اللي نستخدمه فعلاً:</string>
+    <string name="perm_camera_title">الكاميرا</string>
+    <string name="perm_camera_body">نشوف يدك بس وقت الإرسال أو الاستلام، والتحليل كله داخل جوالك.</string>
+    <string name="perm_nearby_title">الأجهزة القريبة</string>
+    <string name="perm_nearby_body">نلقى الجوال الثاني ونتصل فيه مباشرة بدون إنترنت.</string>
+    <string name="perm_location_title">الموقع</string>
+    <string name="perm_location_body">أندرويد ١٢ وأقدم يطلبه للبحث بالبلوتوث. ما نستخدم موقعك أبداً.</string>
+    <string name="perm_notifications_title">الإشعارات</string>
+    <string name="perm_notifications_body">ننبهك لما أحد يبي يرسل لك ملف وكفّ بالخلفية.</string>
+    <string name="perm_grant">سماح</string>
+    <string name="perm_denied">رفضت إذن ضروري. افتح إعدادات التطبيق وفعّله.</string>
+    <string name="perm_open_settings">فتح الإعدادات</string>
+
+    <!-- Notifications -->
+    <string name="notif_channel_offers">طلبات النقل</string>
+    <string name="notif_channel_offers_desc">لما جوال قريب يبي يرسل لك ملف</string>
+    <string name="notif_channel_standby">وضع الاستعداد</string>
+    <string name="notif_channel_bubble">الفقاعة العائمة</string>
+    <string name="notif_pair_title">%1$s يبي يرسل لك</string>
+    <string name="notif_pair_body">اضغط عشان تأكد الرمز وتستلم</string>
+    <string name="notif_offer_body">%1$s · اضغط للاستلام</string>
+    <string name="notif_standby_title">كفّ جاهز للاستلام</string>
+    <string name="notif_standby_body">ظاهر للأجهزة القريبة. الكاميرا مطفية.</string>
+    <string name="notif_stop">إيقاف</string>
+    <string name="notif_bubble_title">الفقاعة العائمة شغّالة</string>
+    <string name="notif_shake_title">هزّيت الجوال</string>
+    <string name="notif_shake_body">اضغط لفتح شاشة الاستلام</string>
+    <string name="bubble_description">افتح كفّ</string>
+
+    <!-- Quick tiles -->
+    <string name="tile_send">كفّ · إرسال</string>
+    <string name="tile_receive">كفّ · استقبال</string>
+</resources>

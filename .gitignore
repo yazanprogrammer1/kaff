@@ -1,0 +1,18 @@
+*.iml
+.gradle/
+.kotlin/
+/local.properties
+/.idea/
+.DS_Store
+/build/
+/app/build/
+/captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# Fetched by scripts/fetch_model.sh (7.8 MB, Apache-2.0, Google MediaPipe)
+/app/src/main/assets/hand_landmarker.task

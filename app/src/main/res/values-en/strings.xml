@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Kaff</string>
+
+    <!-- Common -->
+    <string name="action_close">Close</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_back">Back</string>
+    <string name="action_settings">Settings</string>
+    <string name="action_retry">Try again</string>
+    <string name="action_continue">Continue</string>
+    <string name="action_yes">Yes</string>
+    <string name="action_no">No</string>
+
+    <!-- Home -->
+    <string name="home_status_camera_off">Camera off · saving battery</string>
+    <string name="home_status_standby">Standby on · camera off</string>
+    <string name="home_tagline">Raise your hand. Pass it on.</string>
+    <string name="home_subtitle">Pick a file, grab it with a fist, and open your palm at the other phone.</string>
+    <string name="home_start_send">Start sending</string>
+    <string name="home_receive">Receive</string>
+    <string name="home_history">History</string>
+    <string name="home_lab">Gesture Lab</string>
+    <string name="wake_shake">Shake</string>
+    <string name="wake_tile">Quick tile</string>
+    <string name="wake_bubble">Bubble</string>
+
+    <!-- Camera states -->
+    <string name="camera_asleep">Camera is asleep to save battery</string>
+    <string name="camera_wake">Turn camera on</string>
+    <string name="camera_thermal">Phone is hot, hand tracking paused</string>
+    <string name="camera_battery_saver">Battery saver: slower tracking</string>
+    <string name="camera_failed">Hand tracking is not available on this device. Use the buttons.</string>
+    <string name="gesture_fist_confidence">Fist · %1$d%% sure</string>
+    <string name="gesture_palm_confidence">Open palm · %1$d%% sure</string>
+
+    <!-- Send -->
+    <string name="send_pick_title">What do you want to send?</string>
+    <string name="send_pick_body">Pick a photo, a video or any file, then grab it with a fist.</string>
+    <string name="send_pick_media">Photos &amp; videos</string>
+    <string name="send_pick_files">Any file</string>
+    <string name="send_change_files">Change</string>
+    <string name="send_preparing">Preparing the file…</string>
+    <string name="send_searching">Looking for a nearby phone…</string>
+    <string name="send_searching_hint">Open \"Receive\" on the other phone.</string>
+    <string name="send_peer_ready">Nearby phone ready</string>
+    <string name="send_peer_connecting">Connecting…</string>
+    <string name="send_peer_pairing">Waiting for code confirmation</string>
+    <string name="send_peer_subtitle">%1$s · nearby</string>
+    <string name="send_connected">Connected</string>
+    <string name="send_pairing_code">Code: %1$s · must match the other phone</string>
+    <string name="send_make_fist">Grab the file with a fist</string>
+    <string name="send_make_fist_hint">Close your hand in front of the camera.</string>
+    <string name="send_manual">Send without gesture</string>
+    <string name="send_grabbed_image">Photo grabbed</string>
+    <string name="send_grabbed_video">Video grabbed</string>
+    <string name="send_grabbed_file">File grabbed</string>
+    <string name="send_open_hand_other">Open your palm at the other phone</string>
+    <string name="send_sending">Sending… %1$d%%</string>
+    <string name="send_waiting_receipt">Checking the file arrived intact…</string>
+    <string name="send_done_title">Delivered</string>
+    <string name="send_done_body">%1$s · %2$s</string>
+    <string name="send_again">Send another file</string>
+    <plurals name="send_countdown">
+        <item quantity="one">%d second left before the offer expires.</item>
+        <item quantity="other">%d seconds left before the offer expires.</item>
+    </plurals>
+    <plurals name="file_count">
+        <item quantity="one">%d file</item>
+        <item quantity="other">%d files</item>
+    </plurals>
+
+    <!-- Receive -->
+    <string name="receive_waiting_title">Ready to receive</string>
+    <string name="receive_waiting_body">Let the other phone pick a file and grab it.</string>
+    <string name="receive_visible_as">Visible nearby as: %1$s</string>
+    <string name="receive_pair_title">%1$s wants to connect</string>
+    <string name="receive_pair_code">Code</string>
+    <string name="receive_pair_hint">Make sure the same code shows on the other phone, then tap \"Code matches\".</string>
+    <string name="receive_pair_confirm">Code matches</string>
+    <string name="receive_connected">Connected to %1$s · waiting for a file</string>
+    <string name="receive_offer_image">Photo from %1$s</string>
+    <string name="receive_offer_video">Video from %1$s</string>
+    <string name="receive_offer_file">File from %1$s</string>
+    <string name="receive_offer_many">%1$s from %2$s</string>
+    <string name="receive_verified">Encrypted &amp; verified · code %1$s</string>
+    <string name="receive_open_hand">Open your palm to receive</string>
+    <string name="receive_hold_hint">Hold your hand still to confirm</string>
+    <string name="receive_accept">Accept</string>
+    <string name="receive_reject">Decline</string>
+    <string name="receive_receiving">Receiving… %1$d%%</string>
+    <string name="receive_saving">Verifying and saving…</string>
+    <plurals name="receive_watching">
+        <item quantity="one">Camera watching · %d second</item>
+        <item quantity="other">Camera watching · %d seconds</item>
+    </plurals>
+
+    <!-- Done -->
+    <string name="done_title_image">Photo received</string>
+    <string name="done_title_video">Video received</string>
+    <string name="done_title_file">File received</string>
+    <string name="done_title_many">%1$s received</string>
+    <string name="done_meta">%1$s · %2$s · in %3$s</string>
+    <string name="done_speed">%1$s/s</string>
+    <string name="done_saved_gallery">Saved to your gallery</string>
+    <string name="done_saved_downloads">Saved to Downloads</string>
+    <string name="done_saved_app">Saved to app files</string>
+    <string name="done_open_image">Open photo</string>
+    <string name="done_open_video">Open video</string>
+    <string name="done_open_file">Open file</string>
+    <string name="done_open_failed">No app can open this kind of file.</string>
+    <string name="done_transfer_another">Transfer another file</string>
+
+    <!-- Units -->
+    <string name="size_bytes">%1$s B</string>
+    <string name="size_kb">%1$s KB</string>
+    <string name="size_mb">%1$s MB</string>
+    <string name="size_gb">%1$s GB</string>
+    <string name="duration_seconds">%1$s s</string>
+
+    <!-- Errors -->
+    <string name="error_title">That did not work</string>
+    <string name="error_armed_timeout">Time ran out before the other phone opened their palm. Make a fist again.</string>
+    <string name="error_rejected">The other phone declined the file.</string>
+    <string name="error_disconnected">Lost the connection to the other phone.</string>
+    <string name="error_connection_failed">Could not connect. Bring the phones closer and try again.</string>
+    <string name="error_transfer_failed">Something went wrong during the transfer.</string>
+    <string name="error_integrity">The file arrived incomplete or altered, so it was not saved.</string>
+    <string name="error_save_failed">Could not save the file on your phone.</string>
+    <string name="error_cancelled_by_peer">The other phone cancelled.</string>
+    <string name="error_offer_expired">The offer expired before you accepted. Ask the sender to try again.</string>
+    <string name="error_nearby_unavailable">Nearby devices are unavailable. Check Bluetooth, Wi-Fi and Google Play services.</string>
+    <string name="error_file_unreadable">Could not read the selected file.</string>
+    <string name="error_pairing_declined">You declined the connection.</string>
+    <string name="error_version">The other phone runs a different Kaff version. Update both apps.</string>
+    <string name="error_watch_timeout">No hand seen. The offer timed out.</string>
+    <string name="error_protocol">Received an unexpected message from the other phone.</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_wake">Wake methods</string>
+    <string name="settings_shake">Shake to wake</string>
+    <string name="settings_shake_desc">A firm shake opens the receive screen while Kaff is open or in Standby.</string>
+    <string name="settings_tile">Quick Settings tile</string>
+    <string name="settings_tile_desc">Add \"Kaff · Send\" or \"Kaff · Receive\" from the Quick Settings panel.</string>
+    <string name="settings_tile_add">Add tile</string>
+    <string name="settings_bubble">Floating bubble</string>
+    <string name="settings_bubble_desc">A small bubble over other apps that opens Kaff in one tap. Needs the \"Display over other apps\" permission; stop it from its notification.</string>
+    <string name="settings_bubble_permission">Kaff needs the \"Display over other apps\" permission. Enable it in settings.</string>
+    <string name="settings_standby">Standby mode</string>
+    <string name="settings_standby_desc">Kaff stays visible to nearby phones with a persistent notification and a Stop button. The camera only turns on when you open the app.</string>
+    <string name="settings_section_device">Device</string>
+    <string name="settings_device_name">Device name</string>
+    <string name="settings_device_name_hint">Shown to nearby phones (default: %1$s)</string>
+    <string name="settings_timeout">Turn camera off after</string>
+    <string name="settings_timeout_value">%1$d s</string>
+    <string name="settings_section_feedback">Feedback</string>
+    <string name="settings_haptics">Haptics</string>
+    <string name="settings_sound">Sound on arrival</string>
+    <string name="settings_section_gesture">Gestures</string>
+    <string name="settings_sensitivity">Gesture sensitivity</string>
+    <string name="settings_sensitivity_strict">Precise</string>
+    <string name="settings_sensitivity_loose">Fast</string>
+    <string name="settings_strict_palm">Require palm facing the camera</string>
+    <string name="settings_open_lab">Try it in the Gesture Lab</string>
+    <string name="settings_section_privacy">Privacy &amp; limits</string>
+    <string name="settings_privacy_body">The camera runs only on the send and receive screens and turns itself off. Hand tracking runs fully on your phone, and files go only to the phone whose code you confirmed. No servers, no internet.</string>
+    <string name="settings_limits_body">Honestly: Android does not allow an always-on background camera, Kaff works between Android phones only, and the gesture is a trigger, not an identity check. Security comes from the pairing code and the Accept step.</string>
+
+    <!-- Gesture Lab -->
+    <string name="lab_title">Gesture Lab</string>
+    <string name="lab_hint">Make a fist and open your palm in front of the camera. A gesture confirms once it holds steady.</string>
+    <string name="lab_gesture_none">No gesture</string>
+    <string name="lab_gesture_open">Open palm</string>
+    <string name="lab_gesture_fist">Fist</string>
+    <string name="lab_no_hand">No hand</string>
+    <string name="lab_raw">Live</string>
+    <string name="lab_stable">Confirmed</string>
+    <string name="lab_confidence">Confidence</string>
+    <string name="lab_fps">FPS</string>
+    <string name="lab_hand">Hand</string>
+    <string name="lab_hand_left">Left</string>
+    <string name="lab_hand_right">Right</string>
+    <string name="lab_palm_facing">Palm facing camera</string>
+    <string name="lab_fist_score">Fist</string>
+    <string name="lab_open_score">Palm</string>
+    <string name="lab_percent">%1$d%%</string>
+    <string name="lab_fps_value">%1$.0f</string>
+
+    <!-- History -->
+    <string name="history_title">History</string>
+    <string name="history_empty_title">No transfers yet</string>
+    <string name="history_empty_body">Your first sent or received file shows up here.</string>
+    <string name="history_sent">Sent to %1$s</string>
+    <string name="history_received">Received from %1$s</string>
+    <string name="history_failed">Not completed</string>
+    <string name="history_clear">Clear history</string>
+
+    <!-- Permissions -->
+    <string name="perm_title">A few permissions</string>
+    <string name="perm_body">Kaff only asks for what it actually uses:</string>
+    <string name="perm_camera_title">Camera</string>
+    <string name="perm_camera_body">To see your hand while sending or receiving. Everything is analyzed on your phone.</string>
+    <string name="perm_nearby_title">Nearby devices</string>
+    <string name="perm_nearby_body">To find the other phone and connect directly, without internet.</string>
+    <string name="perm_location_title">Location</string>
+    <string name="perm_location_body">Android 12 and older require it for Bluetooth scanning. Kaff never uses your location.</string>
+    <string name="perm_notifications_title">Notifications</string>
+    <string name="perm_notifications_body">To tell you when someone wants to send you a file while Kaff is in the background.</string>
+    <string name="perm_grant">Allow</string>
+    <string name="perm_denied">A required permission was denied. Enable it in the app settings.</string>
+    <string name="perm_open_settings">Open settings</string>
+
+    <!-- Notifications -->
+    <string name="notif_channel_offers">Transfer requests</string>
+    <string name="notif_channel_offers_desc">When a nearby phone wants to send you a file</string>
+    <string name="notif_channel_standby">Standby mode</string>
+    <string name="notif_channel_bubble">Floating bubble</string>
+    <string name="notif_pair_title">%1$s wants to send you something</string>
+    <string name="notif_pair_body">Tap to confirm the code and receive</string>
+    <string name="notif_offer_body">%1$s · tap to receive</string>
+    <string name="notif_standby_title">Kaff is ready to receive</string>
+    <string name="notif_standby_body">Visible to nearby phones. Camera is off.</string>
+    <string name="notif_stop">Stop</string>
+    <string name="notif_bubble_title">Floating bubble is on</string>
+    <string name="notif_shake_title">You shook your phone</string>
+    <string name="notif_shake_body">Tap to open the receive screen</string>
+    <string name="bubble_description">Open Kaff</string>
+
+    <!-- Quick tiles -->
+    <string name="tile_send">Kaff · Send</string>
+    <string name="tile_receive">Kaff · Receive</string>
+</resources>

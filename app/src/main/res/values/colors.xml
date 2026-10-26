@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="kaff_background">#FF07100C</color>
+    <color name="kaff_primary">#FF2BE38B</color>
+    <color name="kaff_on_primary">#FF07100C</color>
+</resources>
