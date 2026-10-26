@@ -214,12 +214,12 @@ class TransferFlowTest {
     }
 
     @Test
-    fun `nearby unavailable surfaces a friendly error`() = flowTest { phones ->
-        phones.senderLink.available = false
+    fun `radio start failure surfaces the specific reason`() = flowTest { phones ->
+        phones.senderLink.startError = TransferError.NearbyPermission
         runCurrent()
         phones.sender.dispatch(SendEvent.Start)
         settle()
-        assertEquals(SendState.Failed(TransferError.NearbyUnavailable), phones.sender.model.value.state)
+        assertEquals(SendState.Failed(TransferError.NearbyPermission), phones.sender.model.value.state)
     }
 
     @Test

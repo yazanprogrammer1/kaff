@@ -68,7 +68,8 @@ sealed interface SendEvent {
     data object Cancel : SendEvent
     data object Retry : SendEvent
     data object SendAnother : SendEvent
-    data object NearbyUnavailable : SendEvent
+    /** Discovery could not start; [error] says why (permission, location, Bluetooth). */
+    data class RadioFailed(val error: TransferError) : SendEvent
     data class Transport(val event: TransportEvent) : SendEvent
     data class TimerFired(val timer: SendTimer) : SendEvent
     data class FilesQueued(val transferId: String, val payloadIds: List<Long>) : SendEvent
@@ -112,8 +113,8 @@ class SendReducer(
             is SendEvent.FilesChanged -> if (model.state.acceptsFileChanges()) {
                 return T(model.copy(files = event.files))
             }
-            SendEvent.NearbyUnavailable -> if (model.state != SendState.Idle) {
-                return T(model.copy(state = SendState.Failed(TransferError.NearbyUnavailable)), listOf(SendEffect.StopAll))
+            is SendEvent.RadioFailed -> if (model.state != SendState.Idle) {
+                return T(model.copy(state = SendState.Failed(event.error)), listOf(SendEffect.StopAll))
             }
             else -> Unit
         }

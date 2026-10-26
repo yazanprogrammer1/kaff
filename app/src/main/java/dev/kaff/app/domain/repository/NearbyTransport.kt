@@ -2,6 +2,7 @@ package dev.kaff.app.domain.repository
 
 import dev.kaff.app.domain.model.OutgoingFile
 import dev.kaff.app.domain.model.ReceivedFile
+import dev.kaff.app.domain.model.TransferError
 import dev.kaff.app.domain.transfer.ProtocolMessage
 import kotlinx.coroutines.flow.Flow
 
@@ -12,9 +13,12 @@ import kotlinx.coroutines.flow.Flow
 interface NearbyTransport {
     val events: Flow<TransportEvent>
 
-    suspend fun startAdvertising(localName: String): Boolean
+    /** Returns null on success, or the reason the radio could not start. */
+    suspend fun startAdvertising(localName: String): TransferError?
     fun stopAdvertising()
-    suspend fun startDiscovery(): Boolean
+
+    /** Returns null on success, or the reason the radio could not start. */
+    suspend fun startDiscovery(): TransferError?
     fun stopDiscovery()
 
     suspend fun requestConnection(localName: String, endpointId: String): Boolean

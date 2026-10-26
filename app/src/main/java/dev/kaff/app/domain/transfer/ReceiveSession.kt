@@ -68,7 +68,8 @@ sealed interface ReceiveEvent {
     /** Confirmed open palm held long enough, or the Accept button. */
     data object Accept : ReceiveEvent
     data object Reject : ReceiveEvent
-    data object NearbyUnavailable : ReceiveEvent
+    /** Advertising could not start; [error] says why (permission, location, Bluetooth). */
+    data class RadioFailed(val error: TransferError) : ReceiveEvent
     data class Transport(val event: TransportEvent) : ReceiveEvent
     data class TimerFired(val timer: ReceiveTimer) : ReceiveEvent
     data class FileSaved(val transferId: String, val index: Int, val file: SavedFile) : ReceiveEvent
@@ -113,8 +114,8 @@ class ReceiveReducer(
     fun reduce(state: ReceiveState, event: ReceiveEvent): R {
         when (event) {
             ReceiveEvent.Stop -> return stop(state)
-            ReceiveEvent.NearbyUnavailable -> if (state != ReceiveState.Idle) {
-                return R(ReceiveState.Failed(TransferError.NearbyUnavailable), listOf(ReceiveEffect.StopAll))
+            is ReceiveEvent.RadioFailed -> if (state != ReceiveState.Idle) {
+                return R(ReceiveState.Failed(event.error), listOf(ReceiveEffect.StopAll))
             }
             else -> Unit
         }

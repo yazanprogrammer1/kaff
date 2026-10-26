@@ -64,6 +64,15 @@ enum class TransferError {
     CancelledByPeer,
     OfferExpired,
     NearbyUnavailable,
+
+    /** A runtime permission Nearby needs (Bluetooth, nearby Wi-Fi or location) is not granted. */
+    NearbyPermission,
+
+    /** Location services are switched off and this Nearby version needs them for discovery. */
+    LocationOff,
+
+    /** Bluetooth is off or the radio failed. */
+    BluetoothOff,
     FileUnreadable,
     PairingDeclined,
     VersionMismatch,

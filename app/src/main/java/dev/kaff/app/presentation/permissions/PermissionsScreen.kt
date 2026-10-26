@@ -1,8 +1,5 @@
 package dev.kaff.app.presentation.permissions
 
-import android.app.Activity
-import android.content.Context
-import android.content.ContextWrapper
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
@@ -40,6 +37,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import dev.kaff.app.R
 import dev.kaff.app.core.util.KaffPermissions
+import dev.kaff.app.presentation.common.findActivity
 import dev.kaff.app.ui.components.HeroText
 import dev.kaff.app.ui.components.IconBadge
 import dev.kaff.app.ui.components.KaffBackground
@@ -80,10 +78,10 @@ fun PermissionsRoute(onGranted: () -> Unit, onBack: () -> Unit) {
     val items = remember(refresh) {
         buildList {
             add(PermissionItem(KaffIcons.Camera, R.string.perm_camera_title, R.string.perm_camera_body, KaffPermissions.camera.all { KaffPermissions.granted(context, it) }))
-            add(PermissionItem(KaffIcons.Wifi, R.string.perm_nearby_title, R.string.perm_nearby_body, KaffPermissions.nearby.all { KaffPermissions.granted(context, it) }))
-            if (KaffPermissions.needsLocation) {
-                add(PermissionItem(KaffIcons.Lock, R.string.perm_location_title, R.string.perm_location_body, KaffPermissions.nearby.all { KaffPermissions.granted(context, it) }))
+            if (KaffPermissions.radio.isNotEmpty()) {
+                add(PermissionItem(KaffIcons.Wifi, R.string.perm_nearby_title, R.string.perm_nearby_body, KaffPermissions.radio.all { KaffPermissions.granted(context, it) }))
             }
+            add(PermissionItem(KaffIcons.Lock, R.string.perm_location_title, R.string.perm_location_body, KaffPermissions.locationGranted(context)))
             if (KaffPermissions.notifications.isNotEmpty()) {
                 add(PermissionItem(KaffIcons.Bell, R.string.perm_notifications_title, R.string.perm_notifications_body, KaffPermissions.notifications.all { KaffPermissions.granted(context, it) }))
             }
@@ -102,12 +100,6 @@ fun PermissionsRoute(onGranted: () -> Unit, onBack: () -> Unit) {
         },
         onBack = onBack,
     )
-}
-
-private tailrec fun Context.findActivity(): Activity? = when (this) {
-    is Activity -> this
-    is ContextWrapper -> baseContext.findActivity()
-    else -> null
 }
 
 @Composable

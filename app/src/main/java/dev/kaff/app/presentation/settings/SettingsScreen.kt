@@ -9,7 +9,9 @@ import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -19,6 +21,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -40,6 +44,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -57,6 +62,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.kaff.app.R
 import dev.kaff.app.core.util.KaffPermissions
 import dev.kaff.app.domain.model.AppSettings
+import dev.kaff.app.domain.model.ThemeMode
 import dev.kaff.app.service.ReceiveTileService
 import dev.kaff.app.ui.components.IconBadge
 import dev.kaff.app.ui.components.KaffBackground
@@ -72,6 +78,7 @@ import kotlinx.coroutines.delay
 data class SettingsActions(
     val onBack: () -> Unit = {},
     val onLab: () -> Unit = {},
+    val onTheme: (ThemeMode) -> Unit = {},
     val onDeviceName: (String) -> Unit = {},
     val onTimeout: (Int) -> Unit = {},
     val onHaptics: (Boolean) -> Unit = {},
@@ -110,6 +117,7 @@ fun SettingsRoute(onBack: () -> Unit, onLab: () -> Unit, viewModel: SettingsView
         actions = SettingsActions(
             onBack = onBack,
             onLab = onLab,
+            onTheme = viewModel::setTheme,
             onDeviceName = viewModel::setDeviceName,
             onTimeout = viewModel::setCameraTimeout,
             onHaptics = viewModel::setHaptics,
@@ -180,6 +188,7 @@ fun SettingsScreen(settings: AppSettings, defaultDeviceName: String, actions: Se
 
             Section(stringResource(R.string.settings_section_device))
             KaffCard {
+                ThemeSelector(settings.themeMode, actions.onTheme)
                 DeviceNameField(settings.deviceName, defaultDeviceName, actions.onDeviceName)
                 LabeledSlider(
                     label = stringResource(R.string.settings_timeout),
@@ -288,6 +297,48 @@ private fun InfoRow(icon: ImageVector, title: Int, body: Int, trailing: @Composa
             Text(stringResource(body), style = MaterialTheme.typography.bodySmall, color = c.textMuted)
         }
         trailing()
+    }
+}
+
+@Composable
+private fun ThemeSelector(selected: ThemeMode, onSelect: (ThemeMode) -> Unit) {
+    val c = KaffTheme.colors
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(stringResource(R.string.settings_theme), style = MaterialTheme.typography.titleSmall, color = c.text)
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clip(KaffShapes.medium)
+                .background(c.surface2)
+                .padding(4.dp)
+                .selectableGroup(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            ThemeMode.entries.forEach { mode ->
+                val active = mode == selected
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .heightIn(min = 44.dp)
+                        .clip(KaffShapes.small)
+                        .background(if (active) c.primary else c.surface2)
+                        .selectable(selected = active, role = Role.RadioButton, onClick = { onSelect(mode) }),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        stringResource(
+                            when (mode) {
+                                ThemeMode.Dark -> R.string.settings_theme_dark
+                                ThemeMode.Light -> R.string.settings_theme_light
+                                ThemeMode.System -> R.string.settings_theme_system
+                            },
+                        ),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (active) c.onPrimary else c.textSubtle,
+                    )
+                }
+            }
+        }
     }
 }
 

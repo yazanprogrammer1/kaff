@@ -11,7 +11,8 @@ object KaffPermissions {
 
     val camera: List<String> = listOf(Manifest.permission.CAMERA)
 
-    val nearby: List<String> = when {
+    /** Bluetooth and Wi-Fi permissions for Nearby Connections. */
+    val radio: List<String> = when {
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> listOf(
             Manifest.permission.BLUETOOTH_SCAN,
             Manifest.permission.BLUETOOTH_ADVERTISE,
@@ -22,28 +23,36 @@ object KaffPermissions {
             Manifest.permission.BLUETOOTH_SCAN,
             Manifest.permission.BLUETOOTH_ADVERTISE,
             Manifest.permission.BLUETOOTH_CONNECT,
-            Manifest.permission.ACCESS_FINE_LOCATION,
         )
-        else -> listOf(Manifest.permission.ACCESS_FINE_LOCATION)
+        else -> emptyList()
     }
 
-    /** True when Bluetooth discovery still needs the location permission (Android 12L and older). */
-    val needsLocation: Boolean = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
+    /**
+     * Google Play services Nearby rejects discovery without location (status 8034), on every
+     * Android version. Approximate location is enough; precise is only offered.
+     */
+    val location: List<String> = listOf(Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION)
+
+    /** Everything Nearby needs to discover and advertise. */
+    val nearby: List<String> = radio + location
 
     val notifications: List<String> =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) listOf(Manifest.permission.POST_NOTIFICATIONS) else emptyList()
 
-    /** Needed before any transfer screen can work. */
-    val required: List<String> = camera + nearby
+    /** Needed before any transfer screen can work (precise location is optional). */
+    val required: List<String> = camera + radio + Manifest.permission.ACCESS_COARSE_LOCATION
 
-    /** Requested together with [required], but the app works without it. */
-    val all: List<String> = required + notifications
+    /** Requested together, so the system shows one flow. */
+    val all: List<String> = camera + nearby + notifications
 
     fun granted(context: Context, permission: String): Boolean =
         ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
 
+    fun locationGranted(context: Context): Boolean = granted(context, Manifest.permission.ACCESS_COARSE_LOCATION)
+
     fun missingRequired(context: Context): List<String> = required.filterNot { granted(context, it) }
 
-    /** Nearby permissions only: what Standby mode needs to advertise without the camera. */
-    fun missingNearby(context: Context): List<String> = nearby.filterNot { granted(context, it) }
+    /** What Standby mode needs to advertise without the camera. */
+    fun missingNearby(context: Context): List<String> =
+        (radio + Manifest.permission.ACCESS_COARSE_LOCATION).filterNot { granted(context, it) }
 }

@@ -36,7 +36,7 @@ class SendController(
 
     private suspend fun handle(effect: SendEffect) {
         when (effect) {
-            SendEffect.StartDiscovery -> if (!transport.startDiscovery()) dispatch(SendEvent.NearbyUnavailable)
+            SendEffect.StartDiscovery -> transport.startDiscovery()?.let { dispatch(SendEvent.RadioFailed(it)) }
             SendEffect.StopDiscovery -> transport.stopDiscovery()
             is SendEffect.RequestConnection -> if (!transport.requestConnection(device.name.value, effect.endpointId)) {
                 dispatch(SendEvent.Transport(TransportEvent.ConnectionResult(effect.endpointId, connected = false)))

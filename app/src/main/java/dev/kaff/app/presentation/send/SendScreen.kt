@@ -64,6 +64,7 @@ import dev.kaff.app.domain.model.Peer
 import dev.kaff.app.domain.model.TransferError
 import dev.kaff.app.domain.transfer.SendState
 import dev.kaff.app.presentation.common.CameraStage
+import dev.kaff.app.presentation.common.RadioErrorPanel
 import dev.kaff.app.presentation.common.message
 import dev.kaff.app.ui.animation.CountdownRing
 import dev.kaff.app.ui.animation.ParticleTrail
@@ -343,10 +344,7 @@ private fun BottomPanel(state: SendUiState, actions: SendActions) {
                     is SendState.Transferring -> Progress(stringResource(R.string.send_sending, (session.progress * 100).roundToInt()), session.progress)
                     is SendState.AwaitingReceipt -> Progress(stringResource(R.string.send_waiting_receipt), null)
                     is SendState.Completed -> PrimaryButton(stringResource(R.string.send_again), actions.onSendAnother)
-                    is SendState.Failed -> {
-                        Notice(session.error)
-                        PrimaryButton(stringResource(R.string.action_retry), actions.onRetry, trailingIcon = KaffIcons.Refresh)
-                    }
+                    is SendState.Failed -> RadioErrorPanel(session.error, actions.onRetry)
                 }
             }
         }

@@ -17,6 +17,9 @@ fun TransferError.message(): Int = when (this) {
     TransferError.CancelledByPeer -> R.string.error_cancelled_by_peer
     TransferError.OfferExpired -> R.string.error_offer_expired
     TransferError.NearbyUnavailable -> R.string.error_nearby_unavailable
+    TransferError.NearbyPermission -> R.string.error_nearby_permission
+    TransferError.LocationOff -> R.string.error_location_off
+    TransferError.BluetoothOff -> R.string.error_bluetooth_off
     TransferError.FileUnreadable -> R.string.error_file_unreadable
     TransferError.PairingDeclined -> R.string.error_pairing_declined
     TransferError.VersionMismatch -> R.string.error_version

@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import dev.kaff.app.domain.model.AppSettings
+import dev.kaff.app.domain.model.ThemeMode
 import dev.kaff.app.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -32,6 +33,7 @@ class DataStoreSettingsRepository @Inject constructor(
     private fun Preferences.toSettings(): AppSettings {
         val defaults = AppSettings()
         return AppSettings(
+            themeMode = this[THEME]?.let { name -> ThemeMode.entries.firstOrNull { it.name == name } } ?: defaults.themeMode,
             deviceName = this[DEVICE_NAME] ?: defaults.deviceName,
             cameraTimeoutSec = (this[CAMERA_TIMEOUT] ?: defaults.cameraTimeoutSec)
                 .coerceIn(AppSettings.CAMERA_TIMEOUT_RANGE),
@@ -46,6 +48,7 @@ class DataStoreSettingsRepository @Inject constructor(
     }
 
     private fun MutablePreferences.write(settings: AppSettings) {
+        this[THEME] = settings.themeMode.name
         this[DEVICE_NAME] = settings.deviceName.trim().take(MAX_NAME_LENGTH)
         this[CAMERA_TIMEOUT] = settings.cameraTimeoutSec.coerceIn(AppSettings.CAMERA_TIMEOUT_RANGE)
         this[HAPTICS] = settings.hapticsEnabled
@@ -59,6 +62,7 @@ class DataStoreSettingsRepository @Inject constructor(
 
     private companion object {
         const val MAX_NAME_LENGTH = 32
+        val THEME = stringPreferencesKey("theme_mode")
         val DEVICE_NAME = stringPreferencesKey("device_name")
         val CAMERA_TIMEOUT = intPreferencesKey("camera_timeout_sec")
         val HAPTICS = booleanPreferencesKey("haptics")

@@ -10,6 +10,9 @@
     <string name="action_retry">Try again</string>
     <string name="action_yes">Yes</string>
     <string name="action_no">No</string>
+    <string name="action_grant_permission">Grant permission</string>
+    <string name="action_open_location">Turn on location</string>
+    <string name="action_open_bluetooth">Turn on Bluetooth</string>
 
     <!-- Home -->
     <string name="home_status_camera_off">Camera off · saving battery</string>
@@ -129,6 +132,9 @@
     <string name="error_cancelled_by_peer">The other phone cancelled.</string>
     <string name="error_offer_expired">The offer expired before you accepted. Ask the sender to try again.</string>
     <string name="error_nearby_unavailable">Nearby devices are unavailable. Check Bluetooth, Wi-Fi and Google Play services.</string>
+    <string name="error_nearby_permission">Kaff needs the nearby devices and location permissions to find the other phone.</string>
+    <string name="error_location_off">Turn on location so Kaff can find the other phone. Google Play services needs it for discovery; Kaff never reads your location.</string>
+    <string name="error_bluetooth_off">Bluetooth is off or failed. Turn it on and try again.</string>
     <string name="error_file_unreadable">Could not read the selected file.</string>
     <string name="error_pairing_declined">You declined the connection.</string>
     <string name="error_version">The other phone runs a different Kaff version. Update both apps.</string>
@@ -148,7 +154,11 @@
     <string name="settings_bubble_permission">Kaff needs the \"Display over other apps\" permission. Enable it in settings.</string>
     <string name="settings_standby">Standby mode</string>
     <string name="settings_standby_desc">Kaff stays visible to nearby phones with a persistent notification and a Stop button. The camera only turns on when you open the app.</string>
-    <string name="settings_section_device">Device</string>
+    <string name="settings_section_device">Device &amp; look</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_system">System</string>
     <string name="settings_device_name">Device name</string>
     <string name="settings_device_name_hint">Shown to nearby phones (default: %1$s)</string>
     <string name="settings_timeout">Turn camera off after</string>
@@ -203,7 +213,7 @@
     <string name="perm_nearby_title">Nearby devices</string>
     <string name="perm_nearby_body">To find the other phone and connect directly, without internet.</string>
     <string name="perm_location_title">Location</string>
-    <string name="perm_location_body">Android 12 and older require it for Bluetooth scanning. Kaff never uses your location.</string>
+    <string name="perm_location_body">Google Play services Nearby requires it to find the other phone. Kaff never reads or stores your location; approximate is enough.</string>
     <string name="perm_notifications_title">Notifications</string>
     <string name="perm_notifications_body">To tell you when someone wants to send you a file while Kaff is in the background.</string>
     <string name="perm_grant">Allow</string>

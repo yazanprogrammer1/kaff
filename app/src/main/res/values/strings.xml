@@ -10,6 +10,9 @@
     <string name="action_retry">حاول مرة ثانية</string>
     <string name="action_yes">نعم</string>
     <string name="action_no">لا</string>
+    <string name="action_grant_permission">منح الإذن</string>
+    <string name="action_open_location">تشغيل الموقع</string>
+    <string name="action_open_bluetooth">تشغيل البلوتوث</string>
 
     <!-- Home -->
     <string name="home_status_camera_off">الكاميرا مطفية · توفير البطارية</string>
@@ -141,6 +144,9 @@
     <string name="error_cancelled_by_peer">الجوال الثاني ألغى الطلب.</string>
     <string name="error_offer_expired">انتهى الطلب قبل ما تقبله. اطلب من المرسل يعيد.</string>
     <string name="error_nearby_unavailable">خدمة الأجهزة القريبة مو متاحة. تأكد من البلوتوث والواي فاي وخدمات Google Play.</string>
+    <string name="error_nearby_permission">كفّ يحتاج إذن الأجهزة القريبة والموقع عشان يلقى الجوال الثاني.</string>
+    <string name="error_location_off">شغّل خدمة الموقع عشان نلقى الجوال الثاني. خدمات Google تحتاجها للبحث، وما نقرأ موقعك.</string>
+    <string name="error_bluetooth_off">البلوتوث مطفي أو فيه مشكلة. شغّله وحاول مرة ثانية.</string>
     <string name="error_file_unreadable">ما قدرنا نقرأ الملف المختار.</string>
     <string name="error_pairing_declined">رفضت الاتصال.</string>
     <string name="error_version">نسخة كفّ في الجوال الثاني مختلفة. حدّثوا التطبيق.</string>
@@ -160,7 +166,11 @@
     <string name="settings_bubble_permission">نحتاج إذن الظهور فوق التطبيقات. افتح الإعدادات وفعّله لكفّ.</string>
     <string name="settings_standby">وضع الاستعداد</string>
     <string name="settings_standby_desc">كفّ يبقى ظاهر للأجهزة القريبة مع إشعار ثابت فيه زر «إيقاف». الكاميرا ما تشتغل إلا لما تفتح التطبيق.</string>
-    <string name="settings_section_device">الجهاز</string>
+    <string name="settings_section_device">الجهاز والمظهر</string>
+    <string name="settings_theme">المظهر</string>
+    <string name="settings_theme_dark">داكن</string>
+    <string name="settings_theme_light">فاتح</string>
+    <string name="settings_theme_system">حسب الجهاز</string>
     <string name="settings_device_name">اسم الجهاز</string>
     <string name="settings_device_name_hint">يظهر للأجهزة القريبة (الافتراضي: %1$s)</string>
     <string name="settings_timeout">إطفاء الكاميرا تلقائياً بعد</string>
@@ -215,7 +225,7 @@
     <string name="perm_nearby_title">الأجهزة القريبة</string>
     <string name="perm_nearby_body">نلقى الجوال الثاني ونتصل فيه مباشرة بدون إنترنت.</string>
     <string name="perm_location_title">الموقع</string>
-    <string name="perm_location_body">أندرويد ١٢ وأقدم يطلبه للبحث بالبلوتوث. ما نستخدم موقعك أبداً.</string>
+    <string name="perm_location_body">خدمات Google للأجهزة القريبة تطلبه عشان تلقى الجوال الثاني. ما نقرأ موقعك ولا نحفظه أبداً، والموقع التقريبي يكفي.</string>
     <string name="perm_notifications_title">الإشعارات</string>
     <string name="perm_notifications_body">ننبهك لما أحد يبي يرسل لك ملف وكفّ بالخلفية.</string>
     <string name="perm_grant">سماح</string>

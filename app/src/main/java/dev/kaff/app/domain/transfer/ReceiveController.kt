@@ -48,9 +48,8 @@ class ReceiveController(
 
     private suspend fun handle(effect: ReceiveEffect) {
         when (effect) {
-            is ReceiveEffect.StartAdvertising -> if (!transport.startAdvertising(effect.localName)) {
-                dispatch(ReceiveEvent.NearbyUnavailable)
-            }
+            is ReceiveEffect.StartAdvertising ->
+                transport.startAdvertising(effect.localName)?.let { dispatch(ReceiveEvent.RadioFailed(it)) }
             ReceiveEffect.StopAdvertising -> transport.stopAdvertising()
             is ReceiveEffect.AcceptConnection -> if (!transport.acceptConnection(effect.endpointId)) {
                 dispatch(ReceiveEvent.Transport(TransportEvent.ConnectionResult(effect.endpointId, connected = false)))

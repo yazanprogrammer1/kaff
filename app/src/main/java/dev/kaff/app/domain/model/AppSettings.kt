@@ -2,7 +2,11 @@ package dev.kaff.app.domain.model
 
 import dev.kaff.app.domain.gesture.GestureThresholds
 
+/** Kaff is designed dark-first; light and system-following are opt-in. */
+enum class ThemeMode { Dark, Light, System }
+
 data class AppSettings(
+    val themeMode: ThemeMode = ThemeMode.Dark,
     /** Name shown to nearby devices. Blank means "use the phone model". */
     val deviceName: String = "",
     /** Camera turns itself off after this many seconds without a visible hand. */

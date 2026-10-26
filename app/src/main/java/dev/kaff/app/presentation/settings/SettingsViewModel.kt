@@ -8,6 +8,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.kaff.app.data.platform.AndroidLocalDevice
 import dev.kaff.app.domain.model.AppSettings
+import dev.kaff.app.domain.model.ThemeMode
 import dev.kaff.app.domain.repository.SettingsRepository
 import dev.kaff.app.service.FloatingBubbleService
 import dev.kaff.app.service.StandbyService
@@ -31,6 +32,7 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { repository.update(transform) }
     }
 
+    fun setTheme(mode: ThemeMode) = update { it.copy(themeMode = mode) }
     fun setDeviceName(name: String) = update { it.copy(deviceName = name) }
     fun setCameraTimeout(seconds: Int) = update { it.copy(cameraTimeoutSec = seconds) }
     fun setHaptics(on: Boolean) = update { it.copy(hapticsEnabled = on) }

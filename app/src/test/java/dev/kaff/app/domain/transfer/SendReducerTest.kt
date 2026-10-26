@@ -269,8 +269,9 @@ class SendReducerTest {
     }
 
     @Test
-    fun `nearby unavailable fails any active state`() {
-        val r = reducer.reduce(SendModel(SendState.Searching()), SendEvent.NearbyUnavailable)
-        assertEquals(SendState.Failed(TransferError.NearbyUnavailable), r.model.state)
+    fun `radio failure keeps its specific reason`() {
+        val r = reducer.reduce(SendModel(SendState.Searching()), SendEvent.RadioFailed(TransferError.LocationOff))
+        assertEquals(SendState.Failed(TransferError.LocationOff), r.model.state)
+        assertEquals(listOf(SendEffect.StopAll), r.effects)
     }
 }

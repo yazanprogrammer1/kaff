@@ -55,6 +55,7 @@ import dev.kaff.app.domain.model.TransferError
 import dev.kaff.app.domain.transfer.ProtocolMessage
 import dev.kaff.app.domain.transfer.ReceiveState
 import dev.kaff.app.presentation.common.CameraStage
+import dev.kaff.app.presentation.common.RadioErrorPanel
 import dev.kaff.app.presentation.common.message
 import dev.kaff.app.ui.animation.HeroHand
 import dev.kaff.app.ui.animation.sharedHero
@@ -351,8 +352,8 @@ private fun Failed(error: TransferError, onRetry: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
     ) {
         Icon(KaffIcons.Alert, contentDescription = null, tint = c.danger, modifier = Modifier.size(56.dp))
-        HeroText(stringResource(R.string.error_title), stringResource(error.message()))
-        PrimaryButton(stringResource(R.string.action_retry), onRetry, trailingIcon = KaffIcons.Refresh)
+        HeroText(stringResource(R.string.error_title), null)
+        RadioErrorPanel(error, onRetry)
     }
 }
 

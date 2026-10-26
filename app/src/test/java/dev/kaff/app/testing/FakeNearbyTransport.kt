@@ -1,6 +1,7 @@
 package dev.kaff.app.testing
 
 import dev.kaff.app.domain.model.OutgoingFile
+import dev.kaff.app.domain.model.TransferError
 import dev.kaff.app.domain.repository.NearbyTransport
 import dev.kaff.app.domain.repository.TransportEvent
 import dev.kaff.app.domain.transfer.DecodeResult
@@ -36,7 +37,8 @@ class FakeNearbyTransport(val id: String, private val network: FakeNearbyNetwork
     private val _events = MutableSharedFlow<TransportEvent>(extraBufferCapacity = 256)
     override val events: Flow<TransportEvent> = _events
 
-    var available = true
+    /** Set to make radio starts fail with this reason. */
+    var startError: TransferError? = null
     var advertisingName: String? = null
         private set
     var discovering = false
@@ -56,23 +58,23 @@ class FakeNearbyTransport(val id: String, private val network: FakeNearbyNetwork
 
     private fun peer(endpointId: String) = network.devices.getValue(endpointId)
 
-    override suspend fun startAdvertising(localName: String): Boolean {
-        if (!available) return false
+    override suspend fun startAdvertising(localName: String): TransferError? {
+        startError?.let { return it }
         advertisingName = localName
         network.devices.values.filter { it.discovering && it !== this }.forEach { it.emit(TransportEvent.EndpointFound(id, localName)) }
-        return true
+        return null
     }
 
     override fun stopAdvertising() {
         advertisingName = null
     }
 
-    override suspend fun startDiscovery(): Boolean {
-        if (!available) return false
+    override suspend fun startDiscovery(): TransferError? {
+        startError?.let { return it }
         discovering = true
         network.devices.values.filter { it.advertisingName != null && it !== this }
             .forEach { emit(TransportEvent.EndpointFound(it.id, it.advertisingName!!)) }
-        return true
+        return null
     }
 
     override fun stopDiscovery() {

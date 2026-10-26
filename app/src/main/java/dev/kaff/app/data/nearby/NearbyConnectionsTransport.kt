@@ -1,8 +1,13 @@
 package dev.kaff.app.data.nearby
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
+import android.location.LocationManager
 import android.os.ParcelFileDescriptor
 import android.util.Log
+import androidx.core.content.ContextCompat
+import androidx.core.location.LocationManagerCompat
 import androidx.core.net.toUri
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.nearby.Nearby
@@ -22,6 +27,7 @@ import com.google.android.gms.tasks.Task
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.kaff.app.domain.model.OutgoingFile
 import dev.kaff.app.domain.model.ReceivedFile
+import dev.kaff.app.domain.model.TransferError
 import dev.kaff.app.domain.repository.NearbyTransport
 import dev.kaff.app.domain.repository.TransportEvent
 import dev.kaff.app.domain.transfer.DecodeResult
@@ -136,20 +142,32 @@ class NearbyConnectionsTransport @Inject constructor(
         if (!_events.tryEmit(event)) Log.w(TAG, "Dropped transport event ${event::class.simpleName}")
     }
 
-    override suspend fun startAdvertising(localName: String): Boolean = client.startAdvertising(
+    override suspend fun startAdvertising(localName: String): TransferError? = client.startAdvertising(
         localName,
         SERVICE_ID,
         lifecycle,
         AdvertisingOptions.Builder().setStrategy(STRATEGY).build(),
-    ).succeeds(ConnectionsStatusCodes.STATUS_ALREADY_ADVERTISING)
+    ).radioError(ConnectionsStatusCodes.STATUS_ALREADY_ADVERTISING)
 
     override fun stopAdvertising() = client.stopAdvertising()
 
-    override suspend fun startDiscovery(): Boolean = client.startDiscovery(
-        SERVICE_ID,
-        discovery,
-        DiscoveryOptions.Builder().setStrategy(STRATEGY).build(),
-    ).succeeds(ConnectionsStatusCodes.STATUS_ALREADY_DISCOVERING)
+    override suspend fun startDiscovery(): TransferError? {
+        // Measured on Play services 26.41 / Android 16: with location services off, discovery fails
+        // with MISSING_PERMISSION_ACCESS_COARSE_LOCATION even when the permission is granted.
+        // Checking first gives the user the real fix. Advertising works with location off.
+        if (!locationEnabled()) return TransferError.LocationOff
+        return client.startDiscovery(
+            SERVICE_ID,
+            discovery,
+            DiscoveryOptions.Builder().setStrategy(STRATEGY).build(),
+        ).radioError(ConnectionsStatusCodes.STATUS_ALREADY_DISCOVERING)
+    }
+
+    private fun locationEnabled(): Boolean =
+        context.getSystemService(LocationManager::class.java)?.let { LocationManagerCompat.isLocationEnabled(it) } ?: true
+
+    private fun locationGranted(): Boolean =
+        ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
 
     override fun stopDiscovery() = client.stopDiscovery()
 
@@ -203,6 +221,26 @@ class NearbyConnectionsTransport @Inject constructor(
         incomingFiles.clear()
     }
 
+    /** Awaits a start call and turns Nearby's status code into a specific, fixable reason. */
+    private suspend fun Task<Void>.radioError(benign: Int): TransferError? = try {
+        await()
+        null
+    } catch (e: ApiException) {
+        val code = e.statusCode
+        Log.w(TAG, "Nearby start failed: ${ConnectionsStatusCodes.getStatusCodeString(code)}")
+        when (code) {
+            benign -> null
+            // A "missing location permission" with the permission granted means location is off.
+            ConnectionsStatusCodes.MISSING_PERMISSION_ACCESS_COARSE_LOCATION,
+            ConnectionsStatusCodes.MISSING_PERMISSION_ACCESS_FINE_LOCATION,
+            -> if (locationGranted() && !locationEnabled()) TransferError.LocationOff else TransferError.NearbyPermission
+            in MISSING_PERMISSION_CODES -> TransferError.NearbyPermission
+            ConnectionsStatusCodes.MISSING_SETTING_LOCATION_MUST_BE_ON -> TransferError.LocationOff
+            ConnectionsStatusCodes.STATUS_BLUETOOTH_ERROR -> TransferError.BluetoothOff
+            else -> TransferError.NearbyUnavailable
+        }
+    }
+
     /** Awaits the task; true on success or on one of the [benign] status codes. */
     private suspend fun Task<Void>.succeeds(vararg benign: Int): Boolean = try {
         await()
@@ -216,6 +254,8 @@ class NearbyConnectionsTransport @Inject constructor(
     companion object {
         const val SERVICE_ID = "dev.kaff.app.transfer"
         private val STRATEGY = Strategy.P2P_POINT_TO_POINT
+        private val MISSING_PERMISSION_CODES =
+            ConnectionsStatusCodes.MISSING_PERMISSION_NEARBY_WIFI_DEVICES..ConnectionsStatusCodes.MISSING_PERMISSION_BLUETOOTH_CONNECT
         private const val TAG = "NearbyTransport"
     }
 }

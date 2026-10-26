@@ -1,19 +1,27 @@
 package dev.kaff.app
 
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import dev.kaff.app.core.LaunchTarget
 import dev.kaff.app.core.util.KaffPermissions
 import dev.kaff.app.data.sensors.ShakeDetector
+import dev.kaff.app.domain.model.AppSettings
+import dev.kaff.app.domain.model.ThemeMode
 import dev.kaff.app.domain.repository.SettingsRepository
 import dev.kaff.app.presentation.navigation.KaffNavHost
 import dev.kaff.app.service.FloatingBubbleService
@@ -37,10 +45,22 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         if (savedInstanceState == null) LaunchTarget.from(intent)?.let { launchTargets.trySend(it) }
         setContent {
-            KaffTheme {
+            val appSettings by settings.settings.collectAsStateWithLifecycle(initialValue = AppSettings())
+            val dark = when (appSettings.themeMode) {
+                ThemeMode.Dark -> true
+                ThemeMode.Light -> false
+                ThemeMode.System -> isSystemInDarkTheme()
+            }
+            DisposableEffect(dark) {
+                // Status and navigation bar icons follow the app theme, not the system one.
+                val transparent = Color.TRANSPARENT
+                val style = if (dark) SystemBarStyle.dark(transparent) else SystemBarStyle.light(transparent, transparent)
+                enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
+                onDispose { }
+            }
+            KaffTheme(darkTheme = dark) {
                 KaffNavHost(launchTargets.receiveAsFlow())
             }
         }
