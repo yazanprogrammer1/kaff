@@ -311,4 +311,11 @@
         <item quantity="one">%d item not received · cancelled</item>
         <item quantity="other">%d items not received · cancelled</item>
     </plurals>
+    <string name="camera_permission_needed">Kaff needs the camera to see your hand</string>
+    <string name="camera_permission_allow">Allow camera</string>
+    <string name="receive_hint_no_hand">Bring your hand to the front camera</string>
+    <string name="receive_hint_open_fingers">Spread all your fingers at the phone</string>
+    <string name="receive_hint_camera_off">Tap the camera to turn it on, or tap Accept</string>
+    <string name="link_high">High-speed link · Wi-Fi Direct</string>
+    <string name="link_upgrading">Speeding up… (Bluetooth)</string>
 </resources>

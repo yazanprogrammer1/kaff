@@ -359,4 +359,11 @@
         <item quantity="many">ما وصل %d عنصراً · تم الإلغاء</item>
         <item quantity="other">ما وصل %d عنصر · تم الإلغاء</item>
     </plurals>
+    <string name="camera_permission_needed">كفّ يحتاج الكاميرا عشان يشوف يدك</string>
+    <string name="camera_permission_allow">اسمح بالكاميرا</string>
+    <string name="receive_hint_no_hand">قرّب يدك من الكاميرا الأمامية</string>
+    <string name="receive_hint_open_fingers">افتح أصابعك كلها قدام الجوال</string>
+    <string name="receive_hint_camera_off">اضغط على الكاميرا لتشغيلها، أو اضغط «قبول»</string>
+    <string name="link_high">اتصال عالي السرعة · Wi-Fi مباشر</string>
+    <string name="link_upgrading">نرفع السرعة… (بلوتوث)</string>
 </resources>

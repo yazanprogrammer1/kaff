@@ -86,6 +86,9 @@ enum class TransferError {
     Protocol,
 }
 
+/** How fast the current link is, as reported by the transport (Bluetooth → Wi-Fi upgrade). */
+enum class LinkQuality { Unknown, Low, Medium, High }
+
 enum class TransferDirection { Sent, Received }
 
 data class TransferRecord(

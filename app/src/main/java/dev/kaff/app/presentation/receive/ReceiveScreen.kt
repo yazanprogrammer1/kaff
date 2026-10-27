@@ -161,6 +161,7 @@ fun ReceiveScreen(state: ReceiveUiState, analyzer: ImageAnalysis.Analyzer, actio
                         startedAtMs = session.startedAtMs,
                         onCancelRemaining = actions.onCancelRemaining,
                         cancelling = session.stopping,
+                        linkQuality = state.linkQuality,
                         modifier = Modifier.fillMaxSize(),
                     )
                     is ReceiveState.Completed -> Box(Modifier.fillMaxSize())
@@ -279,6 +280,20 @@ private fun OfferCard(peer: Peer, digits: String, offer: ProtocolMessage.Offer) 
     }
 }
 
+/** Tells the user what the camera sees, so a missed palm is never a mystery. */
+@Composable
+private fun receiveHint(state: ReceiveUiState): String {
+    val snapshot = state.camera.snapshot
+    return stringResource(
+        when {
+            !state.camera.active -> R.string.receive_hint_camera_off
+            snapshot.frame == null -> R.string.receive_hint_no_hand
+            snapshot.stable.state == GestureState.OpenPalm -> R.string.receive_hold_hint
+            else -> R.string.receive_hint_open_fingers
+        },
+    )
+}
+
 @Composable
 private fun receiverRows(session: ReceiveState.Receiving): List<TransferRow> {
     val offerThumbnail = rememberJpeg(session.offer.thumbnailBytes())
@@ -348,7 +363,7 @@ private fun Offered(session: ReceiveState.Offered, state: ReceiveUiState, analyz
                         .background(c.primary),
                 )
             }
-            Text(stringResource(R.string.receive_hold_hint), style = MaterialTheme.typography.bodyMedium, color = c.textMuted)
+            Text(receiveHint(state), style = MaterialTheme.typography.bodyMedium, color = c.textMuted)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             PrimaryButton(

@@ -15,8 +15,12 @@ data class AppSettings(
     val soundEnabled: Boolean = false,
     /** 0 = strict, 1 = sensitive. */
     val gestureSensitivity: Float = GestureThresholds.DEFAULT_SENSITIVITY,
-    /** Require the palm (not the back of the hand) to face the camera for the receive gesture. */
-    val strictPalmCheck: Boolean = true,
+    /**
+     * Require the palm (not the back of the hand) to face the camera. Off by default: measured on
+     * device, hands arriving at an angle from the other phone were rejected, and the pairing code
+     * (not the hand) is what protects the transfer.
+     */
+    val strictPalmCheck: Boolean = false,
     val shakeToWake: Boolean = false,
     val standbyMode: Boolean = false,
     val floatingBubble: Boolean = false,

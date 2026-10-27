@@ -1,5 +1,8 @@
 package dev.kaff.app.presentation.common
 
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.ImageAnalysis
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -18,18 +21,26 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import dev.kaff.app.R
+import dev.kaff.app.core.util.KaffPermissions
 import dev.kaff.app.domain.model.GestureState
 import dev.kaff.app.domain.model.Landmark
 import dev.kaff.app.ui.components.HandCameraPreview
@@ -62,6 +73,10 @@ fun CameraStage(
     val c = KaffTheme.colors
     val frame = state.snapshot.frame
     val stable = state.snapshot.stable.state
+    val context = LocalContext.current
+    var cameraAllowed by remember { mutableStateOf(KaffPermissions.granted(context, Manifest.permission.CAMERA)) }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { cameraAllowed = KaffPermissions.granted(context, Manifest.permission.CAMERA) }
+    val askCamera = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { cameraAllowed = it }
     Box(
         if (showPreview) {
             modifier
@@ -73,7 +88,10 @@ fun CameraStage(
         },
         contentAlignment = Alignment.Center,
     ) {
-        if (state.active) {
+        if (!cameraAllowed && !LocalInspectionMode.current) {
+            // A "this time only" grant can expire between screens; ask again instead of a dead camera.
+            CameraPermissionPrompt { askCamera.launch(Manifest.permission.CAMERA) }
+        } else if (state.active) {
             if (!LocalInspectionMode.current) {
                 HandCameraPreview(
                     analyzer = analyzer,
@@ -153,6 +171,23 @@ fun CameraStage(
                     .padding(horizontal = 12.dp, vertical = 6.dp),
             )
         }
+    }
+}
+
+@Composable
+private fun CameraPermissionPrompt(onAllow: () -> Unit) {
+    val c = KaffTheme.colors
+    Column(
+        Modifier
+            .fillMaxSize()
+            .clickable(role = Role.Button, onClick = onAllow)
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
+    ) {
+        Icon(KaffIcons.Camera, contentDescription = null, tint = c.primary, modifier = Modifier.size(32.dp))
+        Text(stringResource(R.string.camera_permission_needed), style = MaterialTheme.typography.bodyMedium, color = c.textMuted, textAlign = TextAlign.Center)
+        Text(stringResource(R.string.camera_permission_allow), style = MaterialTheme.typography.labelMedium, color = c.primarySoft)
     }
 }
 

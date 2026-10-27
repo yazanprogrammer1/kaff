@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.kaff.app.domain.model.GestureState
+import dev.kaff.app.domain.model.LinkQuality
 import dev.kaff.app.domain.model.OutgoingFile
 import dev.kaff.app.domain.repository.FileRepository
 import dev.kaff.app.domain.transfer.ReceiveController
@@ -39,6 +40,7 @@ data class SendUiState(
     val preparing: Pair<Int, Int>? = null,
     val fileError: Boolean = false,
     val camera: GestureCameraState = GestureCameraState(),
+    val linkQuality: LinkQuality = LinkQuality.Unknown,
 )
 
 @HiltViewModel
@@ -56,8 +58,8 @@ class SendViewModel @Inject constructor(
 
     val analyzer: ImageAnalysis.Analyzer get() = camera.tracker
 
-    val state: StateFlow<SendUiState> = combine(controller.model, camera.state, preparing, fileError) { model, cam, prep, err ->
-        SendUiState(model.state, model.files, prep, err, cam)
+    val state: StateFlow<SendUiState> = combine(controller.model, camera.state, preparing, fileError, controller.linkQuality) { model, cam, prep, err, link ->
+        SendUiState(model.state, model.files, prep, err, cam, link)
     }.stateIn(viewModelScope, SharingStarted.Eagerly, SendUiState())
 
     init {

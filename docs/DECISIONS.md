@@ -138,3 +138,19 @@ These cannot be verified without real phones.
     Standby is on).
 15. Instrumented UI tests: `./gradlew connectedDebugAndroidTest` (no device was available while
     building, so they were compiled but not run).
+
+## Field testing round 1 (2026-10-27, OPPO Reno13 F 5G, Android 16)
+
+- **Palm accept missed on the receiver; the button always worked.** Causes found:
+  the camera started only when the offer arrived (1–1.5 s cold start inside a 5 s window),
+  "this time only" camera grants expire silently on ColorOS, and the palm-facing check
+  rejected hands arriving at an angle. Fixes: the receiver warms the camera as soon as a
+  sender is paired; the armed window is 7 s (watch 10 s); the camera stage asks for the
+  camera permission itself; the palm-facing check is off by default (the pairing code, not
+  the hand, protects the transfer); live hints say what the camera sees.
+- **Speed, step 1.** Nearby runs with `ConnectionType.DISRUPTIVE` and `lowPower = false`
+  so it moves the link to Wi-Fi Direct / hotspot (the technique SHAREit-style apps use).
+  Wi-Fi internet can pause during a transfer. The sender waits up to 3 s for
+  `BandwidthInfo.Quality.HIGH` before queueing files, and the transfer screen shows the
+  link state. Step 2, a custom Wi-Fi Direct 5 GHz lane with parallel TCP streams, is only
+  worth it if measured speeds stay low.

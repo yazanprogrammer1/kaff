@@ -19,10 +19,13 @@ enum class FeedbackKind {
 
 /** Session timeouts, shared by both roles. */
 data class SessionTimeouts(
-    /** Sender keeps an armed offer open this long (the 5-second countdown). */
-    val armedWindowMs: Long = 5_000,
+    /**
+     * Sender keeps an armed offer open this long. 7 s, not the 5 s of the first design: on device,
+     * walking the hand to the other phone plus the palm hold did not fit comfortably in 5 s.
+     */
+    val armedWindowMs: Long = 7_000,
     /** Receiver watches for the palm this long after an offer arrives. */
-    val watchMs: Long = 8_000,
+    val watchMs: Long = 10_000,
     /** Sender waits this long for the receiver's DONE receipt after the bytes are out. */
     val receiptMs: Long = 60_000,
     /** A paired connection with no transfer is dropped after this long. */

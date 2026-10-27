@@ -1,10 +1,12 @@
 package dev.kaff.app.domain.repository
 
+import dev.kaff.app.domain.model.LinkQuality
 import dev.kaff.app.domain.model.OutgoingFile
 import dev.kaff.app.domain.model.ReceivedFile
 import dev.kaff.app.domain.model.TransferError
 import dev.kaff.app.domain.transfer.ProtocolMessage
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Peer-to-peer link between two phones. Implemented over Google Nearby Connections; a fake
@@ -12,6 +14,9 @@ import kotlinx.coroutines.flow.Flow
  */
 interface NearbyTransport {
     val events: Flow<TransportEvent>
+
+    /** Quality of the current link; rises to [LinkQuality.High] once Wi-Fi takes over from Bluetooth. */
+    val linkQuality: StateFlow<LinkQuality>
 
     /** Returns null on success, or the reason the radio could not start. */
     suspend fun startAdvertising(localName: String): TransferError?

@@ -1,5 +1,6 @@
 package dev.kaff.app.testing
 
+import dev.kaff.app.domain.model.LinkQuality
 import dev.kaff.app.domain.model.OutgoingFile
 import dev.kaff.app.domain.model.TransferError
 import dev.kaff.app.domain.repository.NearbyTransport
@@ -9,6 +10,8 @@ import dev.kaff.app.domain.transfer.ProtocolCodec
 import dev.kaff.app.domain.transfer.ProtocolMessage
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * In-memory "air" connecting [FakeNearbyTransport]s. Endpoint ids are the device ids. Messages go
@@ -36,6 +39,7 @@ class FakeNearbyNetwork {
 class FakeNearbyTransport(val id: String, private val network: FakeNearbyNetwork) : NearbyTransport {
     private val _events = MutableSharedFlow<TransportEvent>(extraBufferCapacity = 256)
     override val events: Flow<TransportEvent> = _events
+    override val linkQuality: StateFlow<LinkQuality> = MutableStateFlow(LinkQuality.High)
 
     /** Set to make radio starts fail with this reason. */
     var startError: TransferError? = null

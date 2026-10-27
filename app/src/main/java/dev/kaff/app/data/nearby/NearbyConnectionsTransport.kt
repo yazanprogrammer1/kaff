@@ -12,9 +12,12 @@ import androidx.core.net.toUri
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.AdvertisingOptions
+import com.google.android.gms.nearby.connection.BandwidthInfo
 import com.google.android.gms.nearby.connection.ConnectionInfo
 import com.google.android.gms.nearby.connection.ConnectionLifecycleCallback
+import com.google.android.gms.nearby.connection.ConnectionOptions
 import com.google.android.gms.nearby.connection.ConnectionResolution
+import com.google.android.gms.nearby.connection.ConnectionType
 import com.google.android.gms.nearby.connection.ConnectionsStatusCodes
 import com.google.android.gms.nearby.connection.DiscoveredEndpointInfo
 import com.google.android.gms.nearby.connection.DiscoveryOptions
@@ -25,6 +28,7 @@ import com.google.android.gms.nearby.connection.PayloadTransferUpdate
 import com.google.android.gms.nearby.connection.Strategy
 import com.google.android.gms.tasks.Task
 import dagger.hilt.android.qualifiers.ApplicationContext
+import dev.kaff.app.domain.model.LinkQuality
 import dev.kaff.app.domain.model.OutgoingFile
 import dev.kaff.app.domain.model.ReceivedFile
 import dev.kaff.app.domain.model.TransferError
@@ -40,7 +44,10 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.tasks.await
 
 /**
@@ -58,6 +65,9 @@ class NearbyConnectionsTransport @Inject constructor(
     private val client by lazy { Nearby.getConnectionsClient(context) }
     private val _events = MutableSharedFlow<TransportEvent>(extraBufferCapacity = 256)
     override val events: Flow<TransportEvent> = _events.asSharedFlow()
+
+    private val _linkQuality = MutableStateFlow(LinkQuality.Unknown)
+    override val linkQuality: StateFlow<LinkQuality> = _linkQuality.asStateFlow()
 
     /** FILE payloads in flight, so transfer updates can be told apart from BYTES updates. */
     private val incomingFiles = ConcurrentHashMap<Long, Payload>()
@@ -80,7 +90,19 @@ class NearbyConnectionsTransport @Inject constructor(
         }
 
         override fun onDisconnected(endpointId: String) {
+            _linkQuality.value = LinkQuality.Unknown
             emit(TransportEvent.Disconnected(endpointId))
+        }
+
+        override fun onBandwidthChanged(endpointId: String, info: BandwidthInfo) {
+            val quality = when (info.quality) {
+                BandwidthInfo.Quality.HIGH -> LinkQuality.High
+                BandwidthInfo.Quality.MEDIUM -> LinkQuality.Medium
+                BandwidthInfo.Quality.LOW -> LinkQuality.Low
+                else -> LinkQuality.Unknown
+            }
+            Log.i(TAG, "Link quality: $quality")
+            _linkQuality.value = quality
         }
     }
 
@@ -146,7 +168,13 @@ class NearbyConnectionsTransport @Inject constructor(
         localName,
         SERVICE_ID,
         lifecycle,
-        AdvertisingOptions.Builder().setStrategy(STRATEGY).build(),
+        AdvertisingOptions.Builder()
+            .setStrategy(STRATEGY)
+            // Let Nearby move the link to Wi-Fi Direct / hotspot for full speed, like SHAREit does.
+            // Internet on Wi-Fi may pause during a transfer; it comes back when the link closes.
+            .setConnectionType(ConnectionType.DISRUPTIVE)
+            .setLowPower(false)
+            .build(),
     ).radioError(ConnectionsStatusCodes.STATUS_ALREADY_ADVERTISING)
 
     override fun stopAdvertising() = client.stopAdvertising()
@@ -172,7 +200,7 @@ class NearbyConnectionsTransport @Inject constructor(
     override fun stopDiscovery() = client.stopDiscovery()
 
     override suspend fun requestConnection(localName: String, endpointId: String): Boolean =
-        client.requestConnection(localName, endpointId, lifecycle)
+        client.requestConnection(localName, endpointId, lifecycle, CONNECTION_OPTIONS)
             .succeeds(ConnectionsStatusCodes.STATUS_ALREADY_CONNECTED_TO_ENDPOINT)
 
     override suspend fun acceptConnection(endpointId: String): Boolean =
@@ -212,6 +240,7 @@ class NearbyConnectionsTransport @Inject constructor(
     override fun disconnect(endpointId: String) = client.disconnectFromEndpoint(endpointId)
 
     override fun stopAll() {
+        _linkQuality.value = LinkQuality.Unknown
         client.stopAdvertising()
         client.stopDiscovery()
         client.stopAllEndpoints()
@@ -254,6 +283,10 @@ class NearbyConnectionsTransport @Inject constructor(
     companion object {
         const val SERVICE_ID = "dev.kaff.app.transfer"
         private val STRATEGY = Strategy.P2P_POINT_TO_POINT
+        private val CONNECTION_OPTIONS = ConnectionOptions.Builder()
+            .setConnectionType(ConnectionType.DISRUPTIVE)
+            .setLowPower(false)
+            .build()
         private val MISSING_PERMISSION_CODES =
             ConnectionsStatusCodes.MISSING_PERMISSION_NEARBY_WIFI_DEVICES..ConnectionsStatusCodes.MISSING_PERMISSION_BLUETOOTH_CONNECT
         private const val TAG = "NearbyTransport"

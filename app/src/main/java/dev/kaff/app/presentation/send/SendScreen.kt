@@ -159,6 +159,7 @@ fun SendScreen(state: SendUiState, analyzer: ImageAnalysis.Analyzer, actions: Se
                     totalBytes = session.totalBytes,
                     startedAtMs = session.startedAtMs,
                     onCancelRemaining = actions.onCancelRemaining,
+                    linkQuality = state.linkQuality,
                     modifier = Modifier.weight(1f),
                 )
                 is SendState.AwaitingReceipt -> TransferContent(

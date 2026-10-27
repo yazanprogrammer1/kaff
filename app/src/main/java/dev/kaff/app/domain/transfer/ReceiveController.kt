@@ -1,5 +1,6 @@
 package dev.kaff.app.domain.transfer
 
+import dev.kaff.app.domain.model.LinkQuality
 import dev.kaff.app.domain.repository.Clock
 import dev.kaff.app.domain.repository.FeedbackPlayer
 import dev.kaff.app.domain.repository.FileRepository
@@ -45,6 +46,9 @@ class ReceiveController(
     }
 
     fun dispatch(event: ReceiveEvent) = runner.dispatch(event)
+
+    /** Link quality to show on the transfer screen. */
+    val linkQuality: StateFlow<LinkQuality> get() = transport.linkQuality
 
     private suspend fun handle(effect: ReceiveEffect) {
         when (effect) {

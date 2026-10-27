@@ -54,8 +54,10 @@ import dev.kaff.app.core.util.fileSizeText
 import dev.kaff.app.core.util.formatNumber
 import dev.kaff.app.core.util.speedText
 import dev.kaff.app.domain.model.FileKind
+import dev.kaff.app.domain.model.LinkQuality
 import dev.kaff.app.ui.components.FileTile
 import dev.kaff.app.ui.components.KaffIcons
+import dev.kaff.app.ui.components.PillTone
 import dev.kaff.app.ui.components.SecondaryButton
 import dev.kaff.app.ui.components.StatusPill
 import dev.kaff.app.ui.theme.KaffShapes
@@ -102,6 +104,7 @@ fun TransferContent(
     onCancelRemaining: () -> Unit,
     modifier: Modifier = Modifier,
     cancelling: Boolean = false,
+    linkQuality: LinkQuality = LinkQuality.Unknown,
 ) {
     val c = KaffTheme.colors
     val bytes = rows.sumOf { it.bytes.coerceAtMost(it.size) }.coerceAtMost(totalBytes)
@@ -122,6 +125,12 @@ fun TransferContent(
             )
             if (bytes > 0) StatusPill(speedText(rate), icon = KaffIcons.Bolt)
         }
+        // Honest about the radio: Bluetooth first, Wi-Fi once the upgrade lands.
+        StatusPill(
+            stringResource(if (linkQuality == LinkQuality.High) R.string.link_high else R.string.link_upgrading),
+            tone = if (linkQuality == LinkQuality.High) PillTone.Accent else PillTone.Neutral,
+            icon = KaffIcons.Wifi,
+        )
 
         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
             val percent = (progress * 100).roundToInt()

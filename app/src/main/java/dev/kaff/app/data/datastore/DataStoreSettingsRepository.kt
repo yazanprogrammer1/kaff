@@ -68,7 +68,7 @@ class DataStoreSettingsRepository @Inject constructor(
         val HAPTICS = booleanPreferencesKey("haptics")
         val SOUND = booleanPreferencesKey("sound")
         val SENSITIVITY = floatPreferencesKey("gesture_sensitivity")
-        val STRICT_PALM = booleanPreferencesKey("strict_palm")
+        val STRICT_PALM = booleanPreferencesKey("strict_palm_v2")
         val SHAKE = booleanPreferencesKey("shake_to_wake")
         val STANDBY = booleanPreferencesKey("standby_mode")
         val BUBBLE = booleanPreferencesKey("floating_bubble")

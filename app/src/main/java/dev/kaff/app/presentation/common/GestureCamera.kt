@@ -1,6 +1,8 @@
 package dev.kaff.app.presentation.common
 
+import android.util.Log
 import androidx.compose.runtime.Immutable
+import dev.kaff.app.BuildConfig
 import dev.kaff.app.data.hand.HandTracker
 import dev.kaff.app.domain.gesture.GestureEngine
 import dev.kaff.app.domain.gesture.GestureSnapshot
@@ -90,11 +92,23 @@ class GestureCamera(
             }
         }
         scope.launch(analysisDispatcher) {
+            var lastLog = 0L
             tracker.frames.collect { tracked ->
                 val snapshot = engine.process(tracked.hand, tracked.timestampMs)
                 if (tracked.hand != null) bumpActivity()
                 _state.update { it.copy(snapshot = snapshot, fps = tracker.fps.value) }
                 if (snapshot.stable.justConfirmed) _confirmations.tryEmit(snapshot.stable)
+                if (BuildConfig.DEBUG && tracked.timestampMs - lastLog >= DIAGNOSTIC_INTERVAL_MS) {
+                    lastLog = tracked.timestampMs
+                    // Gesture numbers only; never image data.
+                    Log.d(
+                        TAG,
+                        "fps=%.0f hand=%b raw=%s fist=%.2f open=%.2f facing=%b stable=%s held=%dms".format(
+                            tracker.fps.value, tracked.hand != null, snapshot.reading.state, snapshot.reading.fistScore,
+                            snapshot.reading.openScore, snapshot.reading.palmFacing, snapshot.stable.state, snapshot.heldMs,
+                        ),
+                    )
+                }
             }
         }
         scope.launch { tracker.failed.collect { failed -> _state.update { it.copy(trackerFailed = failed) } } }
@@ -134,5 +148,7 @@ class GestureCamera(
     private companion object {
         /** About 15 fps instead of the camera's 30 when battery saver is on. */
         const val BATTERY_SAVER_INTERVAL_MS = 66L
+        const val DIAGNOSTIC_INTERVAL_MS = 1_000L
+        const val TAG = "KaffGesture"
     }
 }

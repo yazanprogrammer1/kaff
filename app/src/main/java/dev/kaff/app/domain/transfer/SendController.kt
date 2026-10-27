@@ -1,5 +1,6 @@
 package dev.kaff.app.domain.transfer
 
+import dev.kaff.app.domain.model.LinkQuality
 import dev.kaff.app.domain.repository.Clock
 import dev.kaff.app.domain.repository.FeedbackPlayer
 import dev.kaff.app.domain.repository.HistoryRepository
@@ -8,6 +9,8 @@ import dev.kaff.app.domain.repository.NearbyTransport
 import dev.kaff.app.domain.repository.TransportEvent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.launch
 import java.util.UUID
 
@@ -34,6 +37,9 @@ class SendController(
 
     fun dispatch(event: SendEvent) = runner.dispatch(event)
 
+    /** Link quality to show on the transfer screen. */
+    val linkQuality: StateFlow<LinkQuality> get() = transport.linkQuality
+
     private suspend fun handle(effect: SendEffect) {
         when (effect) {
             SendEffect.StartDiscovery -> transport.startDiscovery()?.let { dispatch(SendEvent.RadioFailed(it)) }
@@ -57,6 +63,11 @@ class SendController(
     }
 
     private suspend fun queue(effect: SendEffect.QueueFiles) {
+        // Payloads queued while the link is still on Bluetooth crawl at ~100 KB/s. The Wi-Fi upgrade
+        // usually lands within a second or two of pairing, so give it a short head start.
+        if (transport.linkQuality.value != LinkQuality.High) {
+            withTimeoutOrNull(UPGRADE_WAIT_MS) { transport.linkQuality.first { it == LinkQuality.High } }
+        }
         val ids = ArrayList<Long>(effect.files.size)
         effect.files.forEachIndexed { index, file ->
             val payloadId = transport.sendFile(effect.endpointId, file)
@@ -68,5 +79,9 @@ class SendController(
             ids += payloadId
         }
         dispatch(SendEvent.FilesQueued(effect.transferId, ids))
+    }
+
+    private companion object {
+        const val UPGRADE_WAIT_MS = 3_000L
     }
 }

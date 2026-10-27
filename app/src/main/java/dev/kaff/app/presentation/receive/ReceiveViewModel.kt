@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.kaff.app.domain.model.GestureState
+import dev.kaff.app.domain.model.LinkQuality
 import dev.kaff.app.domain.repository.LocalDevice
 import dev.kaff.app.domain.transfer.ReceiveController
 import dev.kaff.app.domain.transfer.ReceiveEvent
@@ -31,6 +32,7 @@ data class ReceiveUiState(
     val deviceName: String = "",
     /** 0..1 progress of the open-palm hold that accepts the offer. */
     val holdProgress: Float = 0f,
+    val linkQuality: LinkQuality = LinkQuality.Unknown,
 )
 
 /** Keeps the last completed receive for the Done screen, independent of the session lifecycle. */
@@ -52,13 +54,13 @@ class ReceiveViewModel @Inject constructor(
 
     val analyzer: ImageAnalysis.Analyzer get() = camera.tracker
 
-    val state: StateFlow<ReceiveUiState> = combine(controller.state, camera.state, device.name) { session, cam, name ->
+    val state: StateFlow<ReceiveUiState> = combine(controller.state, camera.state, device.name, controller.linkQuality) { session, cam, name, link ->
         val hold = if (session is ReceiveState.Offered && cam.snapshot.stable.state == GestureState.OpenPalm) {
             (cam.snapshot.heldMs.toFloat() / PALM_HOLD_MS).coerceIn(0f, 1f)
         } else {
             0f
         }
-        ReceiveUiState(session, cam, name, hold)
+        ReceiveUiState(session, cam, name, hold, link)
     }.stateIn(viewModelScope, SharingStarted.Eagerly, ReceiveUiState())
 
     init {
@@ -68,13 +70,16 @@ class ReceiveViewModel @Inject constructor(
             else -> Unit
         }
         viewModelScope.launch {
-            // The camera only runs while an offer is waiting for the palm.
-            controller.state.map { it is ReceiveState.Offered }.distinctUntilChanged().collect { offered ->
-                if (offered) {
-                    camera.resetGesture()
-                    camera.wake()
-                } else {
-                    camera.sleep()
+            // Warm the camera as soon as a sender is paired so it is already tracking when the offer
+            // lands (a cold start costs 1-1.5 s of the sender's window). Off otherwise.
+            controller.state.map { it.cameraPhase() }.distinctUntilChanged().collect { phase ->
+                when (phase) {
+                    CameraPhase.Off -> camera.sleep()
+                    CameraPhase.Warm -> camera.wake()
+                    CameraPhase.Watching -> {
+                        camera.resetGesture()
+                        camera.wake()
+                    }
                 }
             }
         }
@@ -86,6 +91,16 @@ class ReceiveViewModel @Inject constructor(
         viewModelScope.launch {
             controller.state.collect { if (it is ReceiveState.Completed) lastReceive.completed = it }
         }
+    }
+
+    private enum class CameraPhase { Off, Warm, Watching }
+
+    private fun ReceiveState.cameraPhase(): CameraPhase = when (this) {
+        is ReceiveState.Connected -> CameraPhase.Warm
+        is ReceiveState.Offered -> CameraPhase.Watching
+        ReceiveState.Idle, is ReceiveState.Advertising, is ReceiveState.PairingRequest,
+        is ReceiveState.Receiving, is ReceiveState.Completed, is ReceiveState.Failed,
+        -> CameraPhase.Off
     }
 
     fun onConfirmPairing() = controller.dispatch(ReceiveEvent.ConfirmPairing)
