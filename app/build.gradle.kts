@@ -108,6 +108,8 @@ dependencies {
     implementation(libs.mediapipe.tasks.vision)
 
     implementation(libs.play.services.nearby)
+    // QR codes for the desktop address and the Kaff hotspot (encoder only, no camera scanning).
+    implementation(libs.zxing.core)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.kotlinx.serialization.json)

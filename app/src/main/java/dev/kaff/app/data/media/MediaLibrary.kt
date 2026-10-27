@@ -142,6 +142,14 @@ class MediaLibrary @Inject constructor(
                     if (!c.isNull(1)) size = c.getLong(1)
                 }
             }
+            // Some providers (and our own shared-text files) leave SIZE empty.
+            if (size <= 0) {
+                size = try {
+                    resolver.openAssetFileDescriptor(uri, "r")?.use { it.length }?.takeIf { it > 0 } ?: 0L
+                } catch (e: java.io.IOException) {
+                    0L
+                }
+            }
             PickItem(
                 uri = uri.toString(),
                 name = name ?: uri.lastPathSegment ?: "kaff_file",

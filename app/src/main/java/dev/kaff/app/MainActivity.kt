@@ -18,6 +18,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import dev.kaff.app.core.LaunchTarget
+import dev.kaff.app.core.ShareInbox
 import dev.kaff.app.core.util.KaffPermissions
 import dev.kaff.app.data.sensors.ShakeDetector
 import dev.kaff.app.domain.model.AppSettings
@@ -38,6 +39,7 @@ import javax.inject.Inject
 class MainActivity : ComponentActivity() {
 
     @Inject lateinit var settings: SettingsRepository
+    @Inject lateinit var shareInbox: ShareInbox
 
     /** Screens requested by the tile, bubble, shake or a notification. */
     private val launchTargets = Channel<LaunchTarget>(Channel.CONFLATED)
@@ -45,7 +47,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
-        if (savedInstanceState == null) LaunchTarget.from(intent)?.let { launchTargets.trySend(it) }
+        if (savedInstanceState == null) route(intent)
         setContent {
             val appSettings by settings.settings.collectAsStateWithLifecycle(initialValue = AppSettings())
             val dark = when (appSettings.themeMode) {
@@ -70,7 +72,13 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        LaunchTarget.from(intent)?.let { launchTargets.trySend(it) }
+        setIntent(intent)
+        route(intent)
+    }
+
+    private fun route(intent: Intent?) {
+        val target = if (shareInbox.accept(this, intent)) LaunchTarget.Share else LaunchTarget.from(intent)
+        target?.let { launchTargets.trySend(it) }
     }
 
     /** Opt-in services cannot start from the background, so they are (re)started while the app is open. */

@@ -9,7 +9,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import dev.kaff.app.data.mediastore.MediaStoreFileRepository
-import dev.kaff.app.data.nearby.NearbyConnectionsTransport
+import dev.kaff.app.data.turbo.TurboTransport
 import dev.kaff.app.data.platform.AndroidFeedbackPlayer
 import dev.kaff.app.data.platform.AndroidLocalDevice
 import dev.kaff.app.data.platform.SystemClockImpl
@@ -33,7 +33,7 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class TransferBindings {
-    @Binds abstract fun transport(impl: NearbyConnectionsTransport): NearbyTransport
+    @Binds abstract fun transport(impl: TurboTransport): NearbyTransport
     @Binds abstract fun files(impl: MediaStoreFileRepository): FileRepository
     @Binds abstract fun history(impl: RoomHistoryRepository): HistoryRepository
     @Binds abstract fun clock(impl: SystemClockImpl): Clock

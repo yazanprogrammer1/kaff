@@ -92,8 +92,41 @@ class MediaStoreFileRepository @Inject constructor(
         }
     }
 
+    override suspend fun import(name: String, mime: String?, input: InputStream, expectedSize: Long?): SavedFile? = withContext(io) {
+        val clean = sanitize(name)
+        val type = mime?.takeIf { it.isNotBlank() && it != "application/octet-stream" } ?: mimeFromName(clean)
+        // The hash is only known at the end; it is filled in once the copy succeeded.
+        var hashed: Pair<String, Long>? = null
+        val draft = FileMeta(name = clean, size = 0, mime = type, sha256 = "")
+        val copy: (OutputStream) -> Boolean = { out ->
+            val result = input.use { source -> out.use { copyHashing(source, it) } }
+            hashed = result
+            // A browser that disconnects mid-upload ends the stream early: never keep half a file.
+            expectedSize == null || result.second == expectedSize
+        }
+        try {
+            val saved = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) writeMediaStore(draft, copy) else writeAppFolder(draft, copy)
+            val (sha, size) = hashed ?: return@withContext null
+            (saved as? SaveResult.Saved)?.file?.copy(meta = draft.copy(size = size, sha256 = sha))
+        } catch (e: IOException) {
+            Log.w(TAG, "Import failed", e)
+            null
+        } catch (e: IllegalStateException) {
+            Log.w(TAG, "Import failed", e)
+            null
+        } catch (e: SecurityException) {
+            Log.w(TAG, "Import failed", e)
+            null
+        }
+    }
+
     @RequiresApi(Build.VERSION_CODES.Q)
-    private fun saveToMediaStore(file: ReceivedFile, meta: FileMeta): SaveResult {
+    private fun saveToMediaStore(file: ReceivedFile, meta: FileMeta): SaveResult =
+        writeMediaStore(meta) { out -> copyVerified(file, out, meta) }
+
+    /** Inserts a pending MediaStore row, lets [copy] fill it, and publishes it only if [copy] says so. */
+    @RequiresApi(Build.VERSION_CODES.Q)
+    private fun writeMediaStore(meta: FileMeta, copy: (OutputStream) -> Boolean): SaveResult {
         val (collection, folder, location) = when (meta.kind) {
             FileKind.Image -> Triple(MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY), Environment.DIRECTORY_PICTURES, SaveLocation.Gallery)
             FileKind.Video -> Triple(MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY), Environment.DIRECTORY_MOVIES, SaveLocation.Gallery)
@@ -109,7 +142,7 @@ class MediaStoreFileRepository @Inject constructor(
         val target = resolver.insert(collection, values) ?: return SaveResult.StorageError
         val verified = try {
             val out = resolver.openOutputStream(target) ?: throw IOException("No output stream")
-            copyVerified(file, out, meta)
+            copy(out)
         } catch (e: IOException) {
             resolver.delete(target, null, null)
             throw e
@@ -122,7 +155,10 @@ class MediaStoreFileRepository @Inject constructor(
         return SaveResult.Saved(SavedFile(target.toString(), meta, location))
     }
 
-    private fun saveToAppFolder(file: ReceivedFile, meta: FileMeta): SaveResult {
+    private fun saveToAppFolder(file: ReceivedFile, meta: FileMeta): SaveResult =
+        writeAppFolder(meta) { out -> copyVerified(file, out, meta) }
+
+    private fun writeAppFolder(meta: FileMeta, copy: (OutputStream) -> Boolean): SaveResult {
         val type = when (meta.kind) {
             FileKind.Image -> Environment.DIRECTORY_PICTURES
             FileKind.Video -> Environment.DIRECTORY_MOVIES
@@ -131,7 +167,12 @@ class MediaStoreFileRepository @Inject constructor(
         }
         val dir = File(context.getExternalFilesDir(type) ?: context.filesDir, FOLDER).apply { mkdirs() }
         val target = uniqueFile(dir, sanitize(meta.name))
-        val verified = target.outputStream().let { copyVerified(file, it, meta) }
+        val verified = try {
+            copy(target.outputStream())
+        } catch (e: IOException) {
+            target.delete()
+            throw e
+        }
         if (!verified) {
             target.delete()
             return SaveResult.IntegrityError
@@ -158,6 +199,21 @@ class MediaStoreFileRepository @Inject constructor(
             }
         }
         return total == meta.size && digest.digest().toHex() == meta.sha256
+    }
+
+    /** Copies everything and returns the SHA-256 and size of what was written. */
+    private fun copyHashing(input: InputStream, output: OutputStream): Pair<String, Long> {
+        val digest = MessageDigest.getInstance("SHA-256")
+        val buffer = ByteArray(BUFFER)
+        var total = 0L
+        while (true) {
+            val read = input.read(buffer)
+            if (read < 0) break
+            digest.update(buffer, 0, read)
+            output.write(buffer, 0, read)
+            total += read
+        }
+        return digest.digest().toHex() to total
     }
 
     private fun queryName(uri: Uri): String {

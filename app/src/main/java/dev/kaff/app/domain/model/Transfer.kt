@@ -86,8 +86,11 @@ enum class TransferError {
     Protocol,
 }
 
-/** How fast the current link is, as reported by the transport (Bluetooth → Wi-Fi upgrade). */
-enum class LinkQuality { Unknown, Low, Medium, High }
+/**
+ * How fast the current link is, as reported by the transport (Bluetooth → Wi-Fi upgrade).
+ * [Turbo] means files ride Kaff's own parallel streams on top of the Wi-Fi link.
+ */
+enum class LinkQuality { Unknown, Low, Medium, High, Turbo }
 
 enum class TransferDirection { Sent, Received }
 

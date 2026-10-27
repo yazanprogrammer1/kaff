@@ -13,9 +13,10 @@ import java.util.Base64
 @Serializable
 sealed interface ProtocolMessage {
 
+    /** [turbo] tells the peer this build can run the turbo lane; older builds omit it. */
     @Serializable
     @SerialName("hello")
-    data class Hello(val version: Int, val deviceName: String) : ProtocolMessage
+    data class Hello(val version: Int, val deviceName: String, val turbo: Boolean = false) : ProtocolMessage
 
     /** [thumbnail] is a Base64 JPEG of the first file, dropped if the message would not fit. */
     @Serializable
@@ -58,6 +59,31 @@ sealed interface ProtocolMessage {
     @Serializable
     @SerialName("done")
     data class Done(val transferId: String, val sha256: List<String>, val skipped: List<Int> = emptyList()) : ProtocolMessage
+
+    /**
+     * Turbo lane offer (sender → receiver), sent once the Nearby link is on Wi-Fi. The receiver
+     * opens [streams] TCP connections to [port] on one of [addresses] and proves [token]; file
+     * chunks are AES-GCM encrypted with [key]. Peers that ignore this keep using Nearby payloads.
+     */
+    @Serializable
+    @SerialName("turbo_offer")
+    data class TurboOffer(
+        val addresses: List<String>,
+        val port: Int,
+        val key: String,
+        val token: String,
+        val streams: Int,
+    ) : ProtocolMessage
+
+    /** Receiver's answer to [TurboOffer]: whether its streams connected. */
+    @Serializable
+    @SerialName("turbo_ready")
+    data class TurboReady(val ok: Boolean) : ProtocolMessage
+
+    /** Either side stopped these turbo payloads; the peer drops them as Nearby would on cancel. */
+    @Serializable
+    @SerialName("turbo_cancel")
+    data class TurboCancel(val payloadIds: List<Long>) : ProtocolMessage
 
     @Serializable
     enum class Reason { UserDeclined, Timeout, UserCancelled, Integrity, StorageError }

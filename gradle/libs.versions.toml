@@ -29,6 +29,7 @@ kotlinxSerialization = "1.11.0"
 hilt = "2.60.1"
 mediapipe = "0.10.35"
 playServicesNearby = "19.5.1"
+zxing = "3.5.3"
 
 junit = "4.13.2"
 mockk = "1.14.11"
@@ -74,6 +75,7 @@ kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-
 
 mediapipe-tasks-vision = { group = "com.google.mediapipe", name = "tasks-vision", version.ref = "mediapipe" }
 play-services-nearby = { group = "com.google.android.gms", name = "play-services-nearby", version.ref = "playServicesNearby" }
+zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
 
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }

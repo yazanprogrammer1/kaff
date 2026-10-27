@@ -365,5 +365,57 @@
     <string name="receive_hint_open_fingers">افتح أصابعك كلها قدام الجوال</string>
     <string name="receive_hint_camera_off">اضغط على الكاميرا لتشغيلها، أو اضغط «قبول»</string>
     <string name="link_high">اتصال عالي السرعة · Wi-Fi مباشر</string>
+    <string name="link_turbo">مسار كفّ السريع · 8 قنوات مشفّرة</string>
     <string name="link_upgrading">نرفع السرعة… (بلوتوث)</string>
+
+    <!-- Share sheet and desktop -->
+    <string name="share_target_label">كفّ</string>
+    <string name="share_title">وين ترسلها؟</string>
+    <string name="share_body">لجوال قريب بحركة كف، أو لكمبيوترك من المتصفح.</string>
+    <string name="share_to_phone">لجوال ثاني</string>
+    <string name="share_to_phone_body">اقبض كفّك هنا وافتحها هناك · بدون إنترنت</string>
+    <string name="share_to_desktop">لسطح المكتب</string>
+    <string name="share_to_desktop_body">من متصفح الكمبيوتر · بدون تثبيت أي شي</string>
+    <string name="home_desktop">إلى الكمبيوتر</string>
+    <string name="desktop_title">سطح المكتب</string>
+    <string name="desktop_subtitle">نقل مع الكمبيوتر من المتصفح · بدون إنترنت</string>
+    <string name="desktop_step_join">وصّل الكمبيوتر بشبكة كفّ</string>
+    <string name="desktop_step_open">افتح هذا العنوان في متصفح الكمبيوتر</string>
+    <string name="desktop_step_open_hint">لازم يكون الكمبيوتر على نفس الشبكة.</string>
+    <string name="desktop_step_allow">وافق على الطلب اللي بيطلع هنا</string>
+    <string name="desktop_no_network">الجوال مو متصل بواي فاي</string>
+    <string name="desktop_no_network_body">شغّل شبكة كفّ وخلّ الكمبيوتر يتصل فيها.</string>
+    <string name="desktop_hotspot_start">شغّل شبكة كفّ (بدون إنترنت)</string>
+    <string name="desktop_hotspot_hint">لو الكمبيوتر على شبكة ثانية أو ما فيه واي فاي أصلاً.</string>
+    <string name="desktop_hotspot_failed">ما قدرنا نشغّل الشبكة. شغّل الموقع والواي فاي، أو اطفِ نقطة الاتصال، وجرّب مرة ثانية.</string>
+    <string name="desktop_hotspot_starting">نشغّل شبكة كفّ…</string>
+    <string name="desktop_hotspot_stop">إيقاف شبكة كفّ</string>
+    <string name="desktop_hotspot_name">اسم الشبكة</string>
+    <string name="desktop_hotspot_password">كلمة السر</string>
+    <string name="desktop_qr_address">رمز QR للعنوان</string>
+    <string name="desktop_qr_wifi">رمز QR للاتصال بالشبكة</string>
+    <string name="desktop_connected">متصل: %1$s</string>
+    <string name="desktop_files_empty">ما فيه ملفات للكمبيوتر</string>
+    <string name="desktop_files_empty_body">أضف ملفات ينزّلها الكمبيوتر، أو ارفع من الكمبيوتر للجوال مباشرة.</string>
+    <string name="desktop_files_ready">%1$s جاهزة للكمبيوتر</string>
+    <string name="desktop_files_add">إضافة ملفات</string>
+    <string name="desktop_files_clear">مسح القائمة</string>
+    <string name="desktop_receiving">يستقبل من الكمبيوتر…</string>
+    <string name="desktop_activity">النشاط</string>
+    <string name="desktop_activity_in">وصل من الكمبيوتر · %1$s</string>
+    <string name="desktop_activity_out">نزل على الكمبيوتر · %1$s</string>
+    <string name="desktop_open">فتح</string>
+    <string name="desktop_approve_title">كمبيوتر يبغى يتصل</string>
+    <string name="desktop_approve_body">اسمح بس إذا هذا جهازك.</string>
+    <string name="desktop_allow">سماح</string>
+    <string name="desktop_deny">رفض</string>
+    <string name="desktop_privacy">اتصال محلي مباشر · ما يمر بأي سيرفر</string>
+    <plurals name="desktop_activity_more">
+        <item quantity="zero">و%d غيرها</item>
+        <item quantity="one">وواحد غيره</item>
+        <item quantity="two">واثنين غيرها</item>
+        <item quantity="few">و%d غيرها</item>
+        <item quantity="many">و%d غيرها</item>
+        <item quantity="other">و%d غيرها</item>
+    </plurals>
 </resources>

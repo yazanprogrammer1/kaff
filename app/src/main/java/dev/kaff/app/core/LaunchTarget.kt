@@ -5,10 +5,14 @@ import android.content.Context
 import android.content.Intent
 import dev.kaff.app.MainActivity
 
-/** Screens that wake methods (tile, bubble, shake, notifications) can open directly. */
+/** Screens that wake methods (tile, bubble, shake, notifications, the share sheet) can open directly. */
 enum class LaunchTarget {
     Send,
     Receive,
+
+    /** Something was shared to Kaff: choose another phone or the desktop. */
+    Share,
+    Desktop,
     ;
 
     fun intent(context: Context): Intent = Intent(context, MainActivity::class.java)

@@ -52,13 +52,14 @@ import dev.kaff.app.ui.theme.KaffTheme
 fun HomeRoute(
     onSend: () -> Unit,
     onReceive: () -> Unit,
+    onDesktop: () -> Unit,
     onSettings: () -> Unit,
     onHistory: () -> Unit,
     onLab: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    HomeScreen(state, onSend, onReceive, onSettings, onHistory, onLab)
+    HomeScreen(state, onSend, onReceive, onSettings, onHistory, onLab, onDesktop)
 }
 
 @Composable
@@ -69,6 +70,7 @@ fun HomeScreen(
     onSettings: () -> Unit,
     onHistory: () -> Unit,
     onLab: () -> Unit,
+    onDesktop: () -> Unit = {},
 ) {
     val c = KaffTheme.colors
     KaffBackground {
@@ -122,8 +124,28 @@ fun HomeScreen(
                 }
                 PrimaryButton(stringResource(R.string.home_start_send), onSend, trailingIcon = KaffIcons.ArrowForward)
                 SecondaryButton(stringResource(R.string.home_receive), onReceive)
+                DesktopLink(onDesktop)
             }
         }
+    }
+}
+
+/** Quiet third entry: the browser-based transfer with a computer. */
+@Composable
+private fun DesktopLink(onClick: () -> Unit) {
+    val c = KaffTheme.colors
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .clip(KaffShapes.medium)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(vertical = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(KaffIcons.Desktop, contentDescription = null, tint = c.primary, modifier = Modifier.size(20.dp))
+        Text(stringResource(R.string.home_desktop), style = MaterialTheme.typography.titleSmall, color = c.primarySoft)
     }
 }
 

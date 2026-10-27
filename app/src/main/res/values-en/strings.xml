@@ -317,5 +317,53 @@
     <string name="receive_hint_open_fingers">Spread all your fingers at the phone</string>
     <string name="receive_hint_camera_off">Tap the camera to turn it on, or tap Accept</string>
     <string name="link_high">High-speed link · Wi-Fi Direct</string>
+    <string name="link_turbo">Kaff turbo lane · 8 encrypted streams</string>
     <string name="link_upgrading">Speeding up… (Bluetooth)</string>
+
+    <!-- Share sheet and desktop -->
+    <string name="share_target_label">Kaff</string>
+    <string name="share_title">Where to?</string>
+    <string name="share_body">A nearby phone with one gesture, or your computer from its browser.</string>
+    <string name="share_to_phone">To another phone</string>
+    <string name="share_to_phone_body">Grab here, open your palm there · offline</string>
+    <string name="share_to_desktop">To a computer</string>
+    <string name="share_to_desktop_body">From its browser · nothing to install</string>
+    <string name="home_desktop">To a computer</string>
+    <string name="desktop_title">Desktop</string>
+    <string name="desktop_subtitle">Transfer with a computer in its browser · offline</string>
+    <string name="desktop_step_join">Join Kaff\'s network on the computer</string>
+    <string name="desktop_step_open">Open this address in the computer\'s browser</string>
+    <string name="desktop_step_open_hint">The computer must be on the same network.</string>
+    <string name="desktop_step_allow">Approve the request that appears here</string>
+    <string name="desktop_no_network">This phone isn\'t on Wi-Fi</string>
+    <string name="desktop_no_network_body">Start Kaff\'s own network and join it from the computer.</string>
+    <string name="desktop_hotspot_start">Start Kaff network (offline)</string>
+    <string name="desktop_hotspot_hint">If the computer is on another network, or there is no Wi-Fi at all.</string>
+    <string name="desktop_hotspot_failed">Couldn\'t start the network. Turn on location and Wi-Fi, or turn off your hotspot, and try again.</string>
+    <string name="desktop_hotspot_starting">Starting Kaff network…</string>
+    <string name="desktop_hotspot_stop">Stop Kaff network</string>
+    <string name="desktop_hotspot_name">Network</string>
+    <string name="desktop_hotspot_password">Password</string>
+    <string name="desktop_qr_address">QR code for the address</string>
+    <string name="desktop_qr_wifi">QR code to join the network</string>
+    <string name="desktop_connected">Connected: %1$s</string>
+    <string name="desktop_files_empty">Nothing for the computer yet</string>
+    <string name="desktop_files_empty_body">Add files the computer can download, or upload from the computer straight to this phone.</string>
+    <string name="desktop_files_ready">%1$s ready for the computer</string>
+    <string name="desktop_files_add">Add files</string>
+    <string name="desktop_files_clear">Clear list</string>
+    <string name="desktop_receiving">Receiving from the computer…</string>
+    <string name="desktop_activity">Activity</string>
+    <string name="desktop_activity_in">From the computer · %1$s</string>
+    <string name="desktop_activity_out">Downloaded by the computer · %1$s</string>
+    <string name="desktop_open">Open</string>
+    <string name="desktop_approve_title">A computer wants to connect</string>
+    <string name="desktop_approve_body">Only allow it if it\'s your own computer.</string>
+    <string name="desktop_allow">Allow</string>
+    <string name="desktop_deny">Deny</string>
+    <string name="desktop_privacy">Direct local link · no server in between</string>
+    <plurals name="desktop_activity_more">
+        <item quantity="one">and %d more</item>
+        <item quantity="other">and %d more</item>
+    </plurals>
 </resources>

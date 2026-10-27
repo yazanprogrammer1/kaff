@@ -127,9 +127,15 @@ fun TransferContent(
         }
         // Honest about the radio: Bluetooth first, Wi-Fi once the upgrade lands.
         StatusPill(
-            stringResource(if (linkQuality == LinkQuality.High) R.string.link_high else R.string.link_upgrading),
-            tone = if (linkQuality == LinkQuality.High) PillTone.Accent else PillTone.Neutral,
-            icon = KaffIcons.Wifi,
+            stringResource(
+                when (linkQuality) {
+                    LinkQuality.Turbo -> R.string.link_turbo
+                    LinkQuality.High -> R.string.link_high
+                    else -> R.string.link_upgrading
+                },
+            ),
+            tone = if (linkQuality >= LinkQuality.High) PillTone.Accent else PillTone.Neutral,
+            icon = if (linkQuality == LinkQuality.Turbo) KaffIcons.Bolt else KaffIcons.Wifi,
         )
 
         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {

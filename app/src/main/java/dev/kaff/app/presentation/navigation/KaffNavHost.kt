@@ -17,6 +17,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import dev.kaff.app.core.LaunchTarget
 import dev.kaff.app.core.util.KaffPermissions
+import dev.kaff.app.presentation.desktop.DesktopRoute
 import dev.kaff.app.presentation.done.DoneRoute
 import dev.kaff.app.presentation.history.HistoryRoute
 import dev.kaff.app.presentation.home.HomeRoute
@@ -26,6 +27,7 @@ import dev.kaff.app.presentation.picker.PickerRoute
 import dev.kaff.app.presentation.receive.ReceiveRoute
 import dev.kaff.app.presentation.send.SendRoute
 import dev.kaff.app.presentation.settings.SettingsRoute
+import dev.kaff.app.presentation.share.ShareRoute
 import dev.kaff.app.ui.animation.LocalNavAnimatedScope
 import dev.kaff.app.ui.animation.LocalSharedTransitionScope
 import dev.kaff.app.ui.theme.LocalReduceMotion
@@ -40,6 +42,8 @@ import kotlinx.serialization.Serializable
 @Serializable data object HistoryDestination
 @Serializable data object LabDestination
 @Serializable data object SettingsDestination
+@Serializable data object ShareDestination
+@Serializable data object DesktopDestination
 
 /** Explains and requests permissions, then continues to [target]. */
 @Serializable data class PermissionsDestination(val target: String)
@@ -68,6 +72,14 @@ fun KaffNavHost(launchTargets: Flow<LaunchTarget>) {
                 nav.popBackStack(HomeDestination, inclusive = false)
                 gated(target)
             }
+            LaunchTarget.Share -> nav.navigate(ShareDestination) {
+                popUpTo(HomeDestination)
+                launchSingleTop = true
+            }
+            LaunchTarget.Desktop -> nav.navigate(DesktopDestination) {
+                popUpTo(HomeDestination)
+                launchSingleTop = true
+            }
         }
     }
 
@@ -93,6 +105,7 @@ fun KaffNavHost(launchTargets: Flow<LaunchTarget>) {
                         HomeRoute(
                             onSend = { open(LaunchTarget.Send) },
                             onReceive = { open(LaunchTarget.Receive) },
+                            onDesktop = { open(LaunchTarget.Desktop) },
                             onSettings = { nav.navigate(SettingsDestination) },
                             onHistory = { nav.navigate(HistoryDestination) },
                             onLab = { nav.navigate(LabDestination) },
@@ -140,6 +153,18 @@ fun KaffNavHost(launchTargets: Flow<LaunchTarget>) {
                         onTransferAnother = { open(LaunchTarget.Receive) },
                     )
                 }
+                composable<ShareDestination> {
+                    ShareRoute(
+                        onClose = { nav.backToHome() },
+                        // The basket is already filled with what was shared: straight to the gesture.
+                        onToPhone = {
+                            nav.popBackStack(HomeDestination, inclusive = false)
+                            gated(LaunchTarget.Send)
+                        },
+                        onToDesktop = { open(LaunchTarget.Desktop) },
+                    )
+                }
+                composable<DesktopDestination> { DesktopRoute(onBack = { nav.backToHome() }) }
                 composable<HistoryDestination> { HistoryRoute(onBack = nav::popBackStack) }
                 composable<LabDestination> { GestureLabRoute(onBack = nav::popBackStack) }
                 composable<SettingsDestination> { SettingsRoute(onBack = nav::popBackStack, onLab = { nav.navigate(LabDestination) }) }
@@ -151,6 +176,8 @@ fun KaffNavHost(launchTargets: Flow<LaunchTarget>) {
 private fun LaunchTarget.destination(): Any = when (this) {
     LaunchTarget.Send -> SendDestination
     LaunchTarget.Receive -> ReceiveDestination
+    LaunchTarget.Share -> ShareDestination
+    LaunchTarget.Desktop -> DesktopDestination
 }
 
 private fun NavHostController.backToHome() {

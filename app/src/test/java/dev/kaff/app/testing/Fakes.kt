@@ -60,6 +60,14 @@ class FakeFileRepository(private val failStorage: Boolean = false) : FileReposit
         if (bytes.size.toLong() != meta.size || sha256(bytes) != meta.sha256) return SaveResult.IntegrityError
         return SaveResult.Saved(SavedFile("content://saved/${meta.name}", meta, SaveLocation.Gallery)).also { saved += it.file }
     }
+
+    override suspend fun import(name: String, mime: String?, input: InputStream, expectedSize: Long?): SavedFile? {
+        if (failStorage) return null
+        val bytes = input.use { it.readBytes() }
+        if (expectedSize != null && bytes.size.toLong() != expectedSize) return null
+        val meta = FileMeta(name, bytes.size.toLong(), mime ?: "application/octet-stream", sha256(bytes))
+        return SavedFile("content://saved/$name", meta, SaveLocation.Downloads).also { saved += it }
+    }
 }
 
 class FakeHistory : HistoryRepository {

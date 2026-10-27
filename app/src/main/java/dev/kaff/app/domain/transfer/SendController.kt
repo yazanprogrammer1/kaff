@@ -65,8 +65,8 @@ class SendController(
     private suspend fun queue(effect: SendEffect.QueueFiles) {
         // Payloads queued while the link is still on Bluetooth crawl at ~100 KB/s. The Wi-Fi upgrade
         // usually lands within a second or two of pairing, so give it a short head start.
-        if (transport.linkQuality.value != LinkQuality.High) {
-            withTimeoutOrNull(UPGRADE_WAIT_MS) { transport.linkQuality.first { it == LinkQuality.High } }
+        if (transport.linkQuality.value < LinkQuality.High) {
+            withTimeoutOrNull(UPGRADE_WAIT_MS) { transport.linkQuality.first { it >= LinkQuality.High } }
         }
         val ids = ArrayList<Long>(effect.files.size)
         effect.files.forEachIndexed { index, file ->
