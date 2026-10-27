@@ -3,8 +3,10 @@ package dev.kaff.app.data.mediastore
 import android.content.ContentResolver
 import android.content.ContentValues
 import android.content.Context
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
@@ -16,6 +18,9 @@ import android.util.Size
 import android.webkit.MimeTypeMap
 import androidx.annotation.RequiresApi
 import androidx.core.content.FileProvider
+import androidx.core.graphics.applyCanvas
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.drawable.toBitmap
 import androidx.core.graphics.scale
 import androidx.core.net.toUri
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -23,6 +28,7 @@ import dev.kaff.app.core.di.IoDispatcher
 import dev.kaff.app.domain.model.FileKind
 import dev.kaff.app.domain.model.FileMeta
 import dev.kaff.app.domain.model.OutgoingFile
+import dev.kaff.app.domain.model.PickItem
 import dev.kaff.app.domain.model.ReceivedFile
 import dev.kaff.app.domain.model.SaveLocation
 import dev.kaff.app.domain.model.SavedFile
@@ -53,15 +59,15 @@ class MediaStoreFileRepository @Inject constructor(
 
     private val resolver: ContentResolver get() = context.contentResolver
 
-    override suspend fun prepare(uri: String): OutgoingFile? = withContext(io) {
-        val parsed = uri.toUri()
+    override suspend fun prepare(item: PickItem): OutgoingFile? = withContext(io) {
+        val parsed = item.uri.toUri()
         try {
-            val (name, declaredSize) = queryNameAndSize(parsed)
-            val mime = resolver.getType(parsed) ?: mimeFromName(name)
+            val name = item.name.ifBlank { queryName(parsed) }
+            val mime = item.mime.takeIf { it.isNotBlank() && it != "application/octet-stream" } ?: mimeFromName(name)
             val (sha, size) = resolver.openInputStream(parsed)?.use { hash(it) } ?: return@withContext null
-            if (declaredSize != null && declaredSize != size) Log.w(TAG, "Declared size differs from content size")
             val meta = FileMeta(name = sanitize(name), size = size, mime = mime, sha256 = sha)
-            OutgoingFile(uri, meta, thumbnail(parsed, meta.kind))
+            val thumb = if (item.packageName != null) appIcon(item.packageName) else thumbnail(parsed, meta.kind)
+            OutgoingFile(item.uri, meta, thumb)
         } catch (e: IOException) {
             Log.w(TAG, "Cannot read selected file", e)
             null
@@ -91,7 +97,8 @@ class MediaStoreFileRepository @Inject constructor(
         val (collection, folder, location) = when (meta.kind) {
             FileKind.Image -> Triple(MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY), Environment.DIRECTORY_PICTURES, SaveLocation.Gallery)
             FileKind.Video -> Triple(MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY), Environment.DIRECTORY_MOVIES, SaveLocation.Gallery)
-            FileKind.Other -> Triple(MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY), Environment.DIRECTORY_DOWNLOADS, SaveLocation.Downloads)
+            FileKind.Audio -> Triple(MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY), Environment.DIRECTORY_MUSIC, SaveLocation.Gallery)
+            FileKind.App, FileKind.Other -> Triple(MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY), Environment.DIRECTORY_DOWNLOADS, SaveLocation.Downloads)
         }
         val values = ContentValues().apply {
             put(MediaStore.MediaColumns.DISPLAY_NAME, sanitize(meta.name))
@@ -119,7 +126,8 @@ class MediaStoreFileRepository @Inject constructor(
         val type = when (meta.kind) {
             FileKind.Image -> Environment.DIRECTORY_PICTURES
             FileKind.Video -> Environment.DIRECTORY_MOVIES
-            FileKind.Other -> Environment.DIRECTORY_DOWNLOADS
+            FileKind.Audio -> Environment.DIRECTORY_MUSIC
+            FileKind.App, FileKind.Other -> Environment.DIRECTORY_DOWNLOADS
         }
         val dir = File(context.getExternalFilesDir(type) ?: context.filesDir, FOLDER).apply { mkdirs() }
         val target = uniqueFile(dir, sanitize(meta.name))
@@ -152,15 +160,23 @@ class MediaStoreFileRepository @Inject constructor(
         return total == meta.size && digest.digest().toHex() == meta.sha256
     }
 
-    private fun queryNameAndSize(uri: Uri): Pair<String, Long?> {
-        resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE), null, null, null)?.use { c ->
-            if (c.moveToFirst()) {
-                val name = c.getColumnIndex(OpenableColumns.DISPLAY_NAME).takeIf { it >= 0 }?.let { c.getString(it) }
-                val size = c.getColumnIndex(OpenableColumns.SIZE).takeIf { it >= 0 && !c.isNull(it) }?.let { c.getLong(it) }
-                return (name ?: uri.lastPathSegment ?: DEFAULT_NAME) to size
-            }
+    private fun queryName(uri: Uri): String {
+        resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
+            if (c.moveToFirst() && !c.isNull(0)) return c.getString(0)
         }
-        return (uri.lastPathSegment ?: DEFAULT_NAME) to null
+        return uri.lastPathSegment ?: DEFAULT_NAME
+    }
+
+    /** The launcher icon of an app being shared, so the receiver sees what it is getting. */
+    private fun appIcon(packageName: String): ByteArray? = try {
+        val bitmap = context.packageManager.getApplicationIcon(packageName).toBitmap(APP_ICON_PX, APP_ICON_PX)
+        val opaque = createBitmap(APP_ICON_PX, APP_ICON_PX).applyCanvas {
+            drawColor(Color.rgb(0x10, 0x1B, 0x16))
+            drawBitmap(bitmap, 0f, 0f, null)
+        }
+        compress(opaque).also { opaque.recycle() }
+    } catch (e: PackageManager.NameNotFoundException) {
+        null
     }
 
     private fun hash(input: InputStream): Pair<String, Long> {
@@ -178,7 +194,7 @@ class MediaStoreFileRepository @Inject constructor(
 
     /** A JPEG small enough to ride inside OFFER, or null for non-media and failures. */
     private fun thumbnail(uri: Uri, kind: FileKind): ByteArray? {
-        if (kind == FileKind.Other) return null
+        if (kind == FileKind.Other || kind == FileKind.App) return null
         val bitmap = try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 resolver.loadThumbnail(uri, Size(THUMB_PX, THUMB_PX), null)
@@ -255,6 +271,7 @@ class MediaStoreFileRepository @Inject constructor(
         const val BUFFER = 64 * 1024
         const val THUMB_PX = 256
         const val MIN_THUMB_PX = 64
+        const val APP_ICON_PX = 160
         private val UNSAFE = Regex("[\\\\/:*?\"<>|\\x00-\\x1F]")
 
         /** Names come from another phone: strip paths and characters storage rejects. */

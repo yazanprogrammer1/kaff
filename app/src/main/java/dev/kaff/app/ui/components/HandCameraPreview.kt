@@ -23,9 +23,10 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import java.util.concurrent.Executors
 
 /**
- * Front camera preview with an [ImageAnalysis] use case feeding [analyzer]. The camera is bound to
- * the current lifecycle only while [active] is true, so it stops on timeout, on leaving the screen
- * and whenever the app goes to the background.
+ * Front camera with an [ImageAnalysis] use case feeding [analyzer], plus a visible preview when
+ * [showPreview] is true. The camera is bound to the current lifecycle only while [active] is true,
+ * so it stops on timeout, on leaving the screen and whenever the app goes to the background.
+ * Without a preview only analysis is bound, which uses less power.
  *
  * Preview and analysis both use 4:3 so the landmark overlay lines up with the visible preview.
  */
@@ -34,6 +35,7 @@ fun HandCameraPreview(
     analyzer: ImageAnalysis.Analyzer,
     active: Boolean,
     modifier: Modifier = Modifier,
+    showPreview: Boolean = true,
     onCameraSelected: (frontFacing: Boolean) -> Unit = {},
 ) {
     val context = LocalContext.current
@@ -46,9 +48,9 @@ fun HandCameraPreview(
             implementationMode = PreviewView.ImplementationMode.COMPATIBLE
         }
     }
-    AndroidView(factory = { previewView }, modifier = modifier)
+    if (showPreview) AndroidView(factory = { previewView }, modifier = modifier)
 
-    DisposableEffect(active, lifecycleOwner, analyzer) {
+    DisposableEffect(active, lifecycleOwner, analyzer, showPreview) {
         if (!active) return@DisposableEffect onDispose { }
         val analysisExecutor = Executors.newSingleThreadExecutor()
         val providerFuture = ProcessCameraProvider.getInstance(context)
@@ -83,7 +85,11 @@ fun HandCameraPreview(
             notifySelected(front)
             try {
                 cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle(lifecycleOwner, selector, preview, analysis)
+                if (showPreview) {
+                    cameraProvider.bindToLifecycle(lifecycleOwner, selector, preview, analysis)
+                } else {
+                    cameraProvider.bindToLifecycle(lifecycleOwner, selector, analysis)
+                }
             } catch (e: IllegalArgumentException) {
                 Log.w(TAG, "Camera bind failed", e)
             } catch (e: IllegalStateException) {

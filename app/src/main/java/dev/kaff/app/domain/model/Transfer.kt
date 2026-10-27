@@ -18,11 +18,17 @@ data class FileMeta(
         get() = when {
             mime.startsWith("image/") -> FileKind.Image
             mime.startsWith("video/") -> FileKind.Video
+            mime.startsWith("audio/") -> FileKind.Audio
+            mime == APK_MIME -> FileKind.App
             else -> FileKind.Other
         }
+
+    companion object {
+        const val APK_MIME = "application/vnd.android.package-archive"
+    }
 }
 
-enum class FileKind { Image, Video, Other }
+enum class FileKind { Image, Video, Audio, App, Other }
 
 /** A file chosen by the sender, already hashed. [thumbnailJpeg] is small enough for OFFER. */
 class OutgoingFile(

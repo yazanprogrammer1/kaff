@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -30,6 +32,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.kaff.app.R
@@ -134,12 +137,18 @@ private fun WakeChip(icon: ImageVector, label: String, onClick: () -> Unit, modi
             .background(c.surface)
             .border(1.dp, c.border, KaffShapes.medium)
             .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+            .padding(horizontal = 6.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(icon, contentDescription = null, tint = c.primary, modifier = Modifier.size(18.dp))
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = c.textSubtle, textAlign = TextAlign.Center, maxLines = 1)
+        // Shrinks instead of clipping at large font scales ("هز الجوال" must stay readable).
+        BasicText(
+            label,
+            style = MaterialTheme.typography.bodyMedium.copy(color = c.textSubtle, textAlign = TextAlign.Center),
+            maxLines = 1,
+            autoSize = TextAutoSize.StepBased(minFontSize = 10.sp, maxFontSize = MaterialTheme.typography.bodyMedium.fontSize),
+        )
     }
 }
 

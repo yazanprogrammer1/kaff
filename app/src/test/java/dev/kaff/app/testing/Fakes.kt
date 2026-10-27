@@ -2,6 +2,7 @@ package dev.kaff.app.testing
 
 import dev.kaff.app.domain.model.FileMeta
 import dev.kaff.app.domain.model.OutgoingFile
+import dev.kaff.app.domain.model.PickItem
 import dev.kaff.app.domain.model.ReceivedFile
 import dev.kaff.app.domain.model.SaveLocation
 import dev.kaff.app.domain.model.SavedFile
@@ -51,7 +52,7 @@ class FakeReceivedFile(private val bytes: ByteArray) : ReceivedFile {
 class FakeFileRepository(private val failStorage: Boolean = false) : FileRepository {
     val saved = mutableListOf<SavedFile>()
 
-    override suspend fun prepare(uri: String): OutgoingFile? = null
+    override suspend fun prepare(item: PickItem): OutgoingFile? = null
 
     override suspend fun save(file: ReceivedFile, meta: FileMeta): SaveResult {
         if (failStorage) return SaveResult.StorageError

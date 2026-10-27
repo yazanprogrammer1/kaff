@@ -92,6 +92,7 @@ class ReceiveViewModel @Inject constructor(
     fun onDeclinePairing() = controller.dispatch(ReceiveEvent.DeclinePairing)
     fun onAccept() = controller.dispatch(ReceiveEvent.Accept)
     fun onReject() = controller.dispatch(ReceiveEvent.Reject)
+    fun onCancelRemaining() = controller.dispatch(ReceiveEvent.CancelRemaining)
     fun onRetry() = controller.dispatch(ReceiveEvent.Start)
     fun onWakeCamera() = camera.wake()
 

@@ -196,6 +196,27 @@ class SendReducerTest {
     }
 
     @Test
+    fun `cancel remaining waits for the receivers partial receipt`() {
+        val start = SendModel(SendState.Transferring(peer, "4721", "t1", 30, 0, payloadIds = listOf(100, 101)), listOf(fileA, fileB))
+        var r = reducer.reduce(start, SendEvent.CancelRemaining)
+        assertTrue((r.model.state as SendState.AwaitingReceipt).cancelling)
+        assertTrue(r.effects.contains(SendEffect.Send("B", ProtocolMessage.Cancel("t1", ProtocolMessage.Reason.UserCancelled))))
+
+        r = reducer.reduce(r.model, msg(ProtocolMessage.Done("t1", listOf(fileA.meta.sha256), skipped = listOf(1))))
+        val done = r.model.state as SendState.Completed
+        assertEquals(setOf(1), done.skipped)
+        assertEquals(10L, done.stats.bytes)
+        assertEquals(1, r.effects.filterIsInstance<SendEffect.Record>().single().record.fileCount)
+    }
+
+    @Test
+    fun `nothing delivered after cancel returns to ready`() {
+        val waiting = SendModel(SendState.AwaitingReceipt(peer, "t1", 30, 0, cancelling = true, authDigits = "4721"), listOf(fileA, fileB))
+        val r = reducer.reduce(waiting, msg(ProtocolMessage.Done("t1", emptyList(), skipped = listOf(0, 1))))
+        assertEquals(SendState.Ready(peer, "4721"), r.model.state)
+    }
+
+    @Test
     fun `mismatching receipt is an integrity failure`() {
         val r = reducer.reduce(transferring(), msg(ProtocolMessage.Done("t1", listOf("bad"))))
         assertEquals(SendState.Failed(TransferError.Integrity), r.model.state)

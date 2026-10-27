@@ -14,6 +14,7 @@ import dev.kaff.app.domain.transfer.SendController
 import dev.kaff.app.domain.transfer.SendEvent
 import dev.kaff.app.domain.transfer.SendModel
 import dev.kaff.app.domain.transfer.SendState
+import dev.kaff.app.presentation.common.Basket
 import dev.kaff.app.presentation.common.GestureCameraFactory
 import dev.kaff.app.presentation.common.GestureCameraState
 import kotlinx.coroutines.async
@@ -26,13 +27,16 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import javax.inject.Inject
 
 @Immutable
 data class SendUiState(
     val session: SendState = SendState.Idle,
     val files: List<OutgoingFile> = emptyList(),
-    val preparing: Boolean = false,
+    /** Basket items still being hashed: (done, total). */
+    val preparing: Pair<Int, Int>? = null,
     val fileError: Boolean = false,
     val camera: GestureCameraState = GestureCameraState(),
 )
@@ -42,11 +46,12 @@ class SendViewModel @Inject constructor(
     private val controller: SendController,
     receiveController: ReceiveController,
     private val files: FileRepository,
+    private val basket: Basket,
     cameraFactory: GestureCameraFactory,
 ) : ViewModel() {
 
     private val camera = cameraFactory.create(viewModelScope)
-    private val preparing = MutableStateFlow(false)
+    private val preparing = MutableStateFlow<Pair<Int, Int>?>(null)
     private val fileError = MutableStateFlow(false)
 
     val analyzer: ImageAnalysis.Analyzer get() = camera.tracker
@@ -60,6 +65,7 @@ class SendViewModel @Inject constructor(
         receiveController.dispatch(ReceiveEvent.Stop)
         controller.dispatch(SendEvent.Cancel)
         controller.dispatch(SendEvent.Start)
+        prepareBasket()
 
         viewModelScope.launch {
             camera.confirmations.collect { gesture ->
@@ -77,6 +83,35 @@ class SendViewModel @Inject constructor(
                 if (ready) camera.resetGesture()
             }
         }
+        viewModelScope.launch {
+            // A delivered basket is done; the next transfer starts empty.
+            controller.model.map { it.state is SendState.Completed }.distinctUntilChanged().collect { done ->
+                if (done) basket.clear()
+            }
+        }
+    }
+
+    /** Hashes and thumbnails every basket item while discovery and pairing run in parallel. */
+    private fun prepareBasket() {
+        val items = basket.items.value
+        if (items.isEmpty()) return
+        viewModelScope.launch {
+            preparing.value = 0 to items.size
+            val gate = Semaphore(PARALLEL_PREPARE)
+            var done = 0
+            val prepared = items.map { item ->
+                async {
+                    gate.withPermit { files.prepare(item) }.also {
+                        done++
+                        preparing.value = done to items.size
+                    }
+                }
+            }.awaitAll()
+            val ok = prepared.filterNotNull()
+            fileError.value = ok.size != prepared.size
+            if (ok.isNotEmpty()) controller.dispatch(SendEvent.FilesChanged(ok))
+            preparing.value = null
+        }
     }
 
     private fun SendModel.wantsCamera(): Boolean = files.isNotEmpty() && when (state) {
@@ -88,24 +123,10 @@ class SendViewModel @Inject constructor(
         -> false
     }
 
-    fun onFilesPicked(uris: List<String>) {
-        if (uris.isEmpty()) return
-        viewModelScope.launch {
-            preparing.value = true
-            fileError.value = false
-            val prepared = uris.take(MAX_FILES).map { async { files.prepare(it) } }.awaitAll()
-            val ok = prepared.filterNotNull()
-            fileError.value = ok.size != prepared.size
-            if (ok.isNotEmpty()) controller.dispatch(SendEvent.FilesChanged(ok))
-            preparing.value = false
-        }
-    }
-
     fun onManualSend() = controller.dispatch(SendEvent.Grab)
-    fun onChangeFiles() = controller.dispatch(SendEvent.FilesChanged(emptyList()))
     fun onSelectPeer(endpointId: String) = controller.dispatch(SendEvent.SelectPeer(endpointId))
     fun onRetry() = controller.dispatch(SendEvent.Retry)
-    fun onSendAnother() = controller.dispatch(SendEvent.SendAnother)
+    fun onCancelRemaining() = controller.dispatch(SendEvent.CancelRemaining)
     fun onWakeCamera() = camera.wake()
 
     fun onCameraSelected(frontFacing: Boolean) {
@@ -118,8 +139,7 @@ class SendViewModel @Inject constructor(
         camera.close()
     }
 
-    companion object {
-        /** Keeps OFFER within the Nearby BYTES limit. */
-        const val MAX_FILES = 20
+    private companion object {
+        const val PARALLEL_PREPARE = 3
     }
 }

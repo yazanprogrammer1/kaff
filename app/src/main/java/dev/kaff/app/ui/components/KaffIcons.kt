@@ -66,4 +66,13 @@ object KaffIcons {
     val Alert = icon("Alert", 2f, circle(12f, 12f, 9f), "M12 7.5v5.5M12 16.5h0")
     val Refresh = icon("Refresh", 2f, "M20 11a8 8 0 1 0-2.3 5.7", "M20 4v7h-7")
     val Trash = icon("Trash", 1.8f, "M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13")
+    val Search = icon("Search", 2f, circle(11f, 11f, 6.5f), "M16 16l4.5 4.5")
+    val Music = icon("Music", 1.8f, "M9 18V6l11-2v12", circle(6.5f, 18f, 2.5f), circle(17.5f, 16f, 2.5f))
+    val Apps = icon(
+        "Apps", 1.8f,
+        rect(4f, 4f, 7f, 7f, 2.5f), rect(13f, 4f, 7f, 7f, 2.5f), rect(4f, 13f, 7f, 7f, 2.5f), circle(16.5f, 16.5f, 3.5f),
+    )
+    val Play = ImageVector.Builder("Play", 24.dp, 24.dp, 24f, 24f).apply {
+        addPath(addPathNodes("M8 5.5v13l11-6.5z"), fill = SolidColor(Color.Black))
+    }.build()
 }

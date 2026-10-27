@@ -22,6 +22,7 @@ import dev.kaff.app.presentation.history.HistoryRoute
 import dev.kaff.app.presentation.home.HomeRoute
 import dev.kaff.app.presentation.lab.GestureLabRoute
 import dev.kaff.app.presentation.permissions.PermissionsRoute
+import dev.kaff.app.presentation.picker.PickerRoute
 import dev.kaff.app.presentation.receive.ReceiveRoute
 import dev.kaff.app.presentation.send.SendRoute
 import dev.kaff.app.presentation.settings.SettingsRoute
@@ -32,6 +33,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
 
 @Serializable data object HomeDestination
+@Serializable data object PickerDestination
 @Serializable data object SendDestination
 @Serializable data object ReceiveDestination
 @Serializable data object DoneDestination
@@ -49,11 +51,23 @@ fun KaffNavHost(launchTargets: Flow<LaunchTarget>) {
     val context = LocalContext.current
     val reduceMotion = LocalReduceMotion.current
 
-    fun open(target: LaunchTarget) {
+    /** Transfer screens need camera + Nearby permissions; explain and ask first if missing. */
+    fun gated(target: LaunchTarget) {
         val destination: Any = if (KaffPermissions.missingRequired(context).isEmpty()) target.destination() else PermissionsDestination(target.name)
-        nav.navigate(destination) {
-            popUpTo(HomeDestination)
-            launchSingleTop = true
+        nav.navigate(destination) { launchSingleTop = true }
+    }
+
+    fun open(target: LaunchTarget) {
+        when (target) {
+            // Sending starts by filling the basket; permissions are asked when it is ready.
+            LaunchTarget.Send -> nav.navigate(PickerDestination) {
+                popUpTo(HomeDestination)
+                launchSingleTop = true
+            }
+            LaunchTarget.Receive -> {
+                nav.popBackStack(HomeDestination, inclusive = false)
+                gated(target)
+            }
         }
     }
 
@@ -90,14 +104,23 @@ fun KaffNavHost(launchTargets: Flow<LaunchTarget>) {
                     PermissionsRoute(
                         onGranted = {
                             nav.navigate(target.destination()) {
-                                popUpTo(HomeDestination)
+                                popUpTo<PermissionsDestination> { inclusive = true }
                                 launchSingleTop = true
                             }
                         },
                         onBack = nav::popBackStack,
                     )
                 }
-                composable<SendDestination> { SendRoute(onClose = { nav.backToHome() }) }
+                composable<PickerDestination> {
+                    PickerRoute(onBack = { nav.backToHome() }, onReady = { gated(LaunchTarget.Send) })
+                }
+                composable<SendDestination> {
+                    SendRoute(
+                        onClose = { nav.backToHome() },
+                        onChangeFiles = { if (!nav.popBackStack(PickerDestination, inclusive = false)) open(LaunchTarget.Send) },
+                        onNewTransfer = { open(LaunchTarget.Send) },
+                    )
+                }
                 composable<ReceiveDestination> {
                     CompositionLocalProvider(LocalNavAnimatedScope provides this) {
                         ReceiveRoute(

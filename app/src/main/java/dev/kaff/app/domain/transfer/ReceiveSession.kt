@@ -44,9 +44,24 @@ sealed interface ReceiveState {
         val pending: Map<Long, ReceivedFile> = emptyMap(),
         val receivedBytes: Map<Long, Long> = emptyMap(),
         val saved: Map<Int, SavedFile> = emptyMap(),
+        /** Files fully received and being verified + written to storage. */
+        val saving: Set<Int> = emptySet(),
+        /** Files dropped by "cancel remaining" (either side). */
+        val skipped: Set<Int> = emptySet(),
+        /** Cancel remaining was requested: finish once the files being saved are done. */
+        val stopping: Boolean = false,
     ) : ReceiveState {
+        val receivedTotal: Long get() = receivedBytes.values.sum()
+
         val progress: Float
-            get() = if (offer.totalBytes <= 0) 0f else (receivedBytes.values.sum().toFloat() / offer.totalBytes).coerceIn(0f, 1f)
+            get() = if (offer.totalBytes <= 0) 0f else (receivedTotal.toFloat() / offer.totalBytes).coerceIn(0f, 1f)
+
+        /** Bytes received so far for the file at [index] (0 until its header arrives). */
+        fun bytesOf(index: Int): Long {
+            if (index in saved || index in saving) return offer.files[index].size
+            val payload = headers.entries.firstOrNull { it.value == index }?.key ?: return 0
+            return receivedBytes[payload] ?: 0
+        }
     }
 
     data class Completed(
@@ -54,6 +69,8 @@ sealed interface ReceiveState {
         val offer: ProtocolMessage.Offer,
         val saved: List<SavedFile>,
         val stats: TransferStats,
+        /** Offer indexes that were cancelled before arriving. */
+        val skipped: Set<Int> = emptySet(),
     ) : ReceiveState
 
     data class Failed(val error: TransferError) : ReceiveState
@@ -68,6 +85,9 @@ sealed interface ReceiveEvent {
     /** Confirmed open palm held long enough, or the Accept button. */
     data object Accept : ReceiveEvent
     data object Reject : ReceiveEvent
+
+    /** Keep what already arrived and drop the rest. */
+    data object CancelRemaining : ReceiveEvent
     /** Advertising could not start; [error] says why (permission, location, Bluetooth). */
     data class RadioFailed(val error: TransferError) : ReceiveEvent
     data class Transport(val event: TransportEvent) : ReceiveEvent
@@ -284,11 +304,16 @@ class ReceiveReducer(
 
     private fun receiving(state: ReceiveState.Receiving, event: ReceiveEvent): R = when (event) {
         is ReceiveEvent.FileSaved -> if (event.transferId == state.offer.transferId) {
-            val next = state.copy(saved = state.saved + (event.index to event.file))
-            if (next.saved.size == state.offer.files.size) complete(next) else R(next)
+            val next = state.copy(saved = state.saved + (event.index to event.file), saving = state.saving - event.index)
+            when {
+                next.stopping && next.saving.isEmpty() -> finish(next, emptyList())
+                next.saved.size == state.offer.files.size -> finish(next, emptyList())
+                else -> R(next)
+            }
         } else {
             R(state)
         }
+        ReceiveEvent.CancelRemaining -> stopRemaining(state, byPeer = false)
         is ReceiveEvent.SaveFailed -> if (event.transferId == state.offer.transferId) {
             val reason = if (event.integrity) Reason.Integrity else Reason.StorageError
             fail(
@@ -309,12 +334,18 @@ class ReceiveReducer(
             is TransportEvent.MessageReceived -> when (val m = t.message) {
                 is ProtocolMessage.FileHeader -> {
                     if (m.transferId != state.offer.transferId || m.index !in state.offer.files.indices) return R(state)
+                    if (state.stopping) return R(state)
                     val early = state.pending[m.payloadId]
                     val next = state.copy(headers = state.headers + (m.payloadId to m.index), pending = state.pending - m.payloadId)
-                    if (early != null) R(next, listOf(save(state, m.index, early))) else R(next)
+                    if (early != null) {
+                        R(next.copy(saving = next.saving + m.index), listOf(save(state, m.index, early)))
+                    } else {
+                        R(next)
+                    }
                 }
+                // The sender stopped (cancel remaining, or it is leaving): keep what already arrived.
                 is ProtocolMessage.Cancel -> if (m.transferId == state.offer.transferId) {
-                    fail(state, TransferError.CancelledByPeer, emptyList())
+                    stopRemaining(state, byPeer = true)
                 } else {
                     R(state)
                 }
@@ -329,13 +360,14 @@ class ReceiveReducer(
                 val file = t.file
                 if (t.outgoing || file == null) return R(state)
                 val index = state.headers[t.payloadId]
-                if (index == null) {
-                    R(state.copy(pending = state.pending + (t.payloadId to file)))
-                } else {
-                    R(state, listOf(save(state, index, file)))
+                when {
+                    state.stopping || (index != null && index in state.skipped) -> R(state, listOf(ReceiveEffect.Discard(listOf(file))))
+                    index == null -> R(state.copy(pending = state.pending + (t.payloadId to file)))
+                    else -> R(state.copy(saving = state.saving + index), listOf(save(state, index, file)))
                 }
             }
-            is TransportEvent.PayloadFailed -> if (!t.outgoing) {
+            // Payloads we cancelled ourselves while stopping fail on purpose.
+            is TransportEvent.PayloadFailed -> if (!t.outgoing && !state.stopping) {
                 fail(
                     state,
                     TransferError.TransferFailed,
@@ -352,15 +384,40 @@ class ReceiveReducer(
     private fun save(state: ReceiveState.Receiving, index: Int, file: ReceivedFile): ReceiveEffect =
         ReceiveEffect.SaveFile(state.offer.transferId, index, state.offer.files[index], file)
 
-    private fun complete(state: ReceiveState.Receiving): R {
-        val saved = state.offer.files.indices.map { state.saved.getValue(it) }
+    /**
+     * "Cancel remaining": everything not yet saved or being saved is dropped. Finishes right away
+     * unless files are still being written, in which case [ReceiveEvent.FileSaved] finishes it.
+     */
+    private fun stopRemaining(state: ReceiveState.Receiving, byPeer: Boolean): R {
+        if (state.stopping) return R(state)
+        val remaining = state.offer.files.indices.toSet() - state.saved.keys - state.saving
+        val cancel = state.headers.filterValues { it in remaining }.keys.toList()
+        val next = state.copy(skipped = remaining, stopping = true, pending = emptyMap())
+        val effects = listOf(ReceiveEffect.CancelPayloads(cancel), ReceiveEffect.Discard(state.pending.values.toList()))
+        return if (next.saving.isEmpty()) finish(next, effects, byPeer) else R(next, effects)
+    }
+
+    /** Sends the receipt and ends the transfer with whatever was saved (all of it, or a part). */
+    private fun finish(state: ReceiveState.Receiving, effects: List<ReceiveEffect>, byPeer: Boolean = false): R {
+        val indexes = state.offer.files.indices.filter { it in state.saved }
+        val saved = indexes.map { state.saved.getValue(it) }
+        val skipped = state.offer.files.indices.filterNot { it in state.saved }
+        val receipt = ReceiveEffect.Send(state.peer.endpointId, ProtocolMessage.Done(state.offer.transferId, saved.map { it.meta.sha256 }, skipped))
+        if (saved.isEmpty()) {
+            // Nothing arrived: stay paired, ready for another offer.
+            return R(
+                ReceiveState.Connected(state.peer, state.authDigits, if (byPeer) TransferError.CancelledByPeer else null),
+                effects + receipt + ReceiveEffect.StartTimer(ReceiveTimer.Idle, timeouts.idleMs),
+            )
+        }
         val duration = clock.elapsedMs() - state.startedAtMs
+        val bytes = saved.sumOf { it.meta.size }
         return R(
-            ReceiveState.Completed(state.peer, state.offer, saved, TransferStats(state.offer.totalBytes, duration)),
-            listOf(
-                ReceiveEffect.Send(state.peer.endpointId, ProtocolMessage.Done(state.offer.transferId, saved.map { it.meta.sha256 })),
+            ReceiveState.Completed(state.peer, state.offer, saved, TransferStats(bytes, duration), skipped.toSet()),
+            effects + listOf(
+                receipt,
                 ReceiveEffect.Feedback(FeedbackKind.Success),
-                ReceiveEffect.Record(record(state.peer, state.offer, true, duration, saved.firstOrNull()?.uri)),
+                ReceiveEffect.Record(record(state.peer, state.offer, true, duration, saved.first().uri, saved.size, bytes)),
                 ReceiveEffect.StartTimer(ReceiveTimer.Linger, timeouts.lingerMs),
             ),
         )
@@ -416,11 +473,13 @@ class ReceiveReducer(
         success: Boolean,
         durationMs: Long,
         savedUri: String?,
+        fileCount: Int = offer.files.size,
+        bytes: Long = offer.totalBytes,
     ): TransferRecord = TransferRecord(
         direction = TransferDirection.Received,
         peerName = peer.name,
-        fileCount = offer.files.size,
-        totalBytes = offer.totalBytes,
+        fileCount = fileCount,
+        totalBytes = bytes,
         firstFileName = offer.files.firstOrNull()?.name.orEmpty(),
         firstMime = offer.files.firstOrNull()?.mime.orEmpty(),
         success = success,

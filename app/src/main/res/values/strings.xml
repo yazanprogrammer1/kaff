@@ -4,7 +4,6 @@
 
     <!-- Common -->
     <string name="action_close">إغلاق</string>
-    <string name="action_cancel">إلغاء</string>
     <string name="action_back">رجوع</string>
     <string name="action_settings">الإعدادات</string>
     <string name="action_retry">حاول مرة ثانية</string>
@@ -37,12 +36,7 @@
     <string name="gesture_palm_confidence">كف مفتوح · ثقة %1$d٪</string>
 
     <!-- Send -->
-    <string name="send_pick_title">وش تبي ترسل؟</string>
-    <string name="send_pick_body">اختار صورة أو فيديو أو أي ملف، وبعدها اقبض يدك عليه.</string>
-    <string name="send_pick_media">صور وفيديو</string>
-    <string name="send_pick_files">أي ملف</string>
     <string name="send_change_files">تغيير</string>
-    <string name="send_preparing">نجهّز الملف…</string>
     <string name="send_searching">ندوّر على جوال قريب…</string>
     <string name="send_searching_hint">افتح «استقبال» في الجوال الثاني.</string>
     <string name="send_peer_ready">جوال قريب جاهز</string>
@@ -58,11 +52,6 @@
     <string name="send_grabbed_video">تم مسك الفيديو</string>
     <string name="send_grabbed_file">تم مسك الملف</string>
     <string name="send_open_hand_other">افتح يدك أمام الجوال الثاني</string>
-    <string name="send_sending">نرسل… %1$d٪</string>
-    <string name="send_waiting_receipt">نتأكد إن الملف وصل سليم…</string>
-    <string name="send_done_title">وصل للجوال الثاني</string>
-    <string name="send_done_body">%1$s · %2$s</string>
-    <string name="send_again">نقل ملف ثاني</string>
     <plurals name="send_countdown">
         <item quantity="zero">انتهى الوقت.</item>
         <item quantity="one">عندك ثانية وحدة قبل ما ينتهي الطلب.</item>
@@ -92,14 +81,11 @@
     <string name="receive_offer_image">صورة واردة من %1$s</string>
     <string name="receive_offer_video">فيديو وارد من %1$s</string>
     <string name="receive_offer_file">ملف وارد من %1$s</string>
-    <string name="receive_offer_many">%1$s واردة من %2$s</string>
     <string name="receive_verified">مشفّر ومؤكد · الرمز %1$s</string>
     <string name="receive_open_hand">افتح يدك للاستلام</string>
     <string name="receive_hold_hint">ثبّت اليد لحظة للتأكيد</string>
     <string name="receive_accept">قبول</string>
     <string name="receive_reject">رفض</string>
-    <string name="receive_receiving">نستلم… %1$d٪</string>
-    <string name="receive_saving">نتحقق من الملف ونحفظه…</string>
     <plurals name="receive_watching">
         <item quantity="zero">الكاميرا تراقب</item>
         <item quantity="one">الكاميرا تراقب · ثانية</item>
@@ -116,14 +102,10 @@
     <string name="done_title_many">وصلت %1$s</string>
     <string name="done_meta">%1$s · %2$s · في %3$s</string>
     <string name="done_speed">%1$s/ث</string>
-    <string name="done_saved_gallery">انحفظت في المعرض</string>
-    <string name="done_saved_downloads">انحفظت في التنزيلات</string>
-    <string name="done_saved_app">انحفظت في ملفات التطبيق</string>
     <string name="done_open_image">فتح الصورة</string>
     <string name="done_open_video">فتح الفيديو</string>
     <string name="done_open_file">فتح الملف</string>
     <string name="done_open_failed">ما في تطبيق يفتح هذا النوع من الملفات.</string>
-    <string name="done_transfer_another">نقل ملف ثاني</string>
 
     <!-- Units -->
     <string name="size_bytes">%1$s بايت</string>
@@ -251,4 +233,130 @@
     <!-- Quick tiles -->
     <string name="tile_send">كفّ · إرسال</string>
     <string name="tile_receive">كفّ · استقبال</string>
+
+    <!-- v2: basket, picker, transfer -->
+    <string name="picker_title">اختر ما تريد نقله</string>
+    <string name="picker_search">بحث</string>
+    <string name="picker_search_hint">ابحث بالاسم</string>
+    <string name="tab_photos">صور</string>
+    <string name="tab_videos">فيديو</string>
+    <string name="tab_apps">تطبيقات</string>
+    <string name="tab_files">ملفات</string>
+    <string name="tab_audio">صوتيات</string>
+    <string name="picker_recent">الأحدث · %1$s</string>
+    <string name="picker_select_all">تحديد الكل</string>
+    <string name="picker_clear_all">إلغاء التحديد</string>
+    <string name="picker_hint">بعد الاختيار: ارفع يدك واقبض السلة</string>
+    <string name="picker_access_title">اسمح لكفّ يشوف ملفاتك</string>
+    <string name="picker_access_body">عشان تختار من هنا مباشرة وبسرعة. أو اختر من المعرض بدون أي إذن.</string>
+    <string name="picker_access_grant">سماح بالوصول</string>
+    <string name="picker_access_system">اختيار من المعرض</string>
+    <string name="picker_partial">سمحت ببعض الملفات فقط</string>
+    <string name="picker_partial_more">اختيار المزيد</string>
+    <string name="picker_files_add">إضافة ملفات</string>
+    <string name="picker_files_body">اختر مستندات أو أي ملف من جوالك أو من التخزين السحابي.</string>
+    <string name="picker_app_split">مقسّم · ما يمكن نقله</string>
+    <string name="picker_empty">ما في شي هنا للحين</string>
+    <string name="picker_no_results">ما لقينا شي بهالاسم</string>
+    <string name="picker_limit">الحد %1$d عنصر في السلة</string>
+    <string name="picker_selected">محدد</string>
+    <string name="picker_not_selected">غير محدد</string>
+    <string name="basket_title">السلة · %1$s</string>
+    <string name="basket_ready">جاهز</string>
+    <string name="send_grabbed_basket">تم مسك السلة</string>
+    <string name="send_make_fist_basket">اقبض يدك على السلة</string>
+    <string name="send_drop_title">افلت السلة عند الجوال الثاني</string>
+    <string name="send_preparing_basket">نجهّز السلة…</string>
+    <string name="receive_offer_items">%1$s من %2$s</string>
+    <string name="receive_verified_code">مشفّر · رمز التحقق %1$s</string>
+    <string name="receive_open_hand_basket">افتح يدك لاستلام السلة</string>
+    <string name="receive_accept_all">قبول الكل</string>
+    <string name="transfer_sending">جاري النقل</string>
+    <string name="transfer_receiving">جاري الاستلام</string>
+    <string name="transfer_items_progress">%1$s من %2$s</string>
+    <string name="transfer_bytes">%1$s من %2$s</string>
+    <string name="transfer_eta_calc">نحسب الوقت…</string>
+    <string name="transfer_note">لا تغلق الشاشة · الملفات الصغيرة تنتقل بالتوازي</string>
+    <string name="transfer_cancel_remaining">إلغاء الباقي</string>
+    <string name="transfer_cancelling">نوقف الباقي ونحتفظ باللي وصل…</string>
+    <string name="transfer_verifying">نتحقق من سلامة الملفات…</string>
+    <string name="transfer_percent">%1$s٪</string>
+    <string name="done_meta_short">%1$s · في %2$s تقريباً</string>
+    <string name="done_speed_avg">متوسط %1$s</string>
+    <string name="done_open_folder">فتح المجلد</string>
+    <string name="done_new_transfer">نقل جديد</string>
+    <string name="done_pdf">ملف PDF</string>
+    <string name="send_done_count">وصلت %1$s للجوال الثاني</string>
+    <plurals name="count_images">
+        <item quantity="zero">%d صورة</item>
+        <item quantity="one">صورة</item>
+        <item quantity="two">صورتين</item>
+        <item quantity="few">%d صور</item>
+        <item quantity="many">%d صورة</item>
+        <item quantity="other">%d صورة</item>
+    </plurals>
+    <plurals name="count_videos">
+        <item quantity="zero">%d فيديو</item>
+        <item quantity="one">فيديو</item>
+        <item quantity="two">فيديوين</item>
+        <item quantity="few">%d فيديوهات</item>
+        <item quantity="many">%d فيديو</item>
+        <item quantity="other">%d فيديو</item>
+    </plurals>
+    <plurals name="count_audio">
+        <item quantity="zero">%d مقطع صوتي</item>
+        <item quantity="one">مقطع صوتي</item>
+        <item quantity="two">مقطعين صوتيين</item>
+        <item quantity="few">%d مقاطع صوتية</item>
+        <item quantity="many">%d مقطعاً صوتياً</item>
+        <item quantity="other">%d مقطع صوتي</item>
+    </plurals>
+    <plurals name="count_apps">
+        <item quantity="zero">%d تطبيق</item>
+        <item quantity="one">تطبيق</item>
+        <item quantity="two">تطبيقين</item>
+        <item quantity="few">%d تطبيقات</item>
+        <item quantity="many">%d تطبيقاً</item>
+        <item quantity="other">%d تطبيق</item>
+    </plurals>
+    <plurals name="count_files">
+        <item quantity="zero">%d ملف</item>
+        <item quantity="one">ملف</item>
+        <item quantity="two">ملفين</item>
+        <item quantity="few">%d ملفات</item>
+        <item quantity="many">%d ملفاً</item>
+        <item quantity="other">%d ملف</item>
+    </plurals>
+    <plurals name="count_items">
+        <item quantity="zero">%d عنصر</item>
+        <item quantity="one">عنصر واحد</item>
+        <item quantity="two">عنصرين</item>
+        <item quantity="few">%d عناصر</item>
+        <item quantity="many">%d عنصراً</item>
+        <item quantity="other">%d عنصر</item>
+    </plurals>
+    <plurals name="transfer_eta">
+        <item quantity="zero">على وشك الانتهاء</item>
+        <item quantity="one">باقي ثانية تقريباً</item>
+        <item quantity="two">باقي ثانيتين تقريباً</item>
+        <item quantity="few">باقي %d ثواني تقريباً</item>
+        <item quantity="many">باقي %d ثانية تقريباً</item>
+        <item quantity="other">باقي %d ثانية تقريباً</item>
+    </plurals>
+    <plurals name="send_drop_hint">
+        <item quantity="zero">انتهى الوقت.</item>
+        <item quantity="one">افتح يدك أمامه خلال ثانية.</item>
+        <item quantity="two">افتح يدك أمامه خلال ثانيتين.</item>
+        <item quantity="few">افتح يدك أمامه خلال %d ثواني.</item>
+        <item quantity="many">افتح يدك أمامه خلال %d ثانية.</item>
+        <item quantity="other">افتح يدك أمامه خلال %d ثانية.</item>
+    </plurals>
+    <plurals name="done_skipped">
+        <item quantity="zero">ما وصل %d عنصر · تم الإلغاء</item>
+        <item quantity="one">ما وصل عنصر واحد · تم الإلغاء</item>
+        <item quantity="two">ما وصل عنصرين · تم الإلغاء</item>
+        <item quantity="few">ما وصل %d عناصر · تم الإلغاء</item>
+        <item quantity="many">ما وصل %d عنصراً · تم الإلغاء</item>
+        <item quantity="other">ما وصل %d عنصر · تم الإلغاء</item>
+    </plurals>
 </resources>

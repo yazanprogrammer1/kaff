@@ -54,36 +54,46 @@ fun CameraStage(
     idlePose: List<Landmark>? = HandPoses.OPEN,
     glowState: GestureState? = null,
     previewAlpha: Float = 0.55f,
+    showPreview: Boolean = true,
 ) {
     val c = KaffTheme.colors
     val frame = state.snapshot.frame
     val stable = state.snapshot.stable.state
     Box(
-        modifier
-            .clip(shape)
-            .background(c.surface)
-            .border(1.dp, c.primary.copy(alpha = 0.25f), shape),
+        if (showPreview) {
+            modifier
+                .clip(shape)
+                .background(c.surface)
+                .border(1.dp, c.primary.copy(alpha = 0.25f), shape)
+        } else {
+            modifier.clip(shape)
+        },
         contentAlignment = Alignment.Center,
     ) {
         if (state.active) {
-            if (!LocalInspectionMode.current) HandCameraPreview(
-                analyzer = analyzer,
-                active = true,
-                onCameraSelected = onCameraSelected,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .alpha(previewAlpha),
-            )
-            // Green tint so the preview reads as part of the brand surface, not a raw viewfinder.
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(c.backgroundDeep.copy(alpha = 0.35f), c.glow.copy(alpha = 0.35f), c.background.copy(alpha = 0.6f)),
+            if (!LocalInspectionMode.current) {
+                HandCameraPreview(
+                    analyzer = analyzer,
+                    active = true,
+                    showPreview = showPreview,
+                    onCameraSelected = onCameraSelected,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .alpha(previewAlpha),
+                )
+            }
+            if (showPreview) {
+                // Green tint so the preview reads as part of the brand surface, not a raw viewfinder.
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(c.backgroundDeep.copy(alpha = 0.35f), c.glow.copy(alpha = 0.35f), c.background.copy(alpha = 0.6f)),
+                            ),
                         ),
-                    ),
-            )
+                )
+            }
             if (frame != null) {
                 HandSkeleton(
                     landmarks = frame.landmarks,

@@ -46,6 +46,14 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.kaff.app.R
+import androidx.compose.ui.text.style.TextOverflow
+import dev.kaff.app.ui.components.rememberThumbnail
+import dev.kaff.app.ui.components.StackCard
+import dev.kaff.app.ui.components.MiniStack
+import dev.kaff.app.presentation.common.kindSummary
+import dev.kaff.app.presentation.common.itemCount
+import dev.kaff.app.presentation.common.TransferRow
+import dev.kaff.app.presentation.common.TransferContent
 import dev.kaff.app.core.util.fileSizeText
 import dev.kaff.app.domain.model.FileKind
 import dev.kaff.app.domain.model.FileMeta
@@ -92,6 +100,7 @@ fun ReceiveRoute(onClose: () -> Unit, onCompleted: () -> Unit, viewModel: Receiv
             onDeclinePairing = viewModel::onDeclinePairing,
             onAccept = viewModel::onAccept,
             onReject = viewModel::onReject,
+            onCancelRemaining = viewModel::onCancelRemaining,
             onRetry = viewModel::onRetry,
             onWakeCamera = viewModel::onWakeCamera,
             onCameraSelected = viewModel::onCameraSelected,
@@ -105,6 +114,7 @@ data class ReceiveActions(
     val onDeclinePairing: () -> Unit = {},
     val onAccept: () -> Unit = {},
     val onReject: () -> Unit = {},
+    val onCancelRemaining: () -> Unit = {},
     val onRetry: () -> Unit = {},
     val onWakeCamera: () -> Unit = {},
     val onCameraSelected: (Boolean) -> Unit = {},
@@ -144,7 +154,15 @@ fun ReceiveScreen(state: ReceiveUiState, analyzer: ImageAnalysis.Analyzer, actio
                     is ReceiveState.PairingRequest -> Pairing(session, actions)
                     is ReceiveState.Connected -> Connected(session)
                     is ReceiveState.Offered -> Offered(session, state, analyzer, actions)
-                    is ReceiveState.Receiving -> Receiving(session)
+                    is ReceiveState.Receiving -> TransferContent(
+                        sending = false,
+                        rows = receiverRows(session),
+                        totalBytes = session.offer.totalBytes,
+                        startedAtMs = session.startedAtMs,
+                        onCancelRemaining = actions.onCancelRemaining,
+                        cancelling = session.stopping,
+                        modifier = Modifier.fillMaxSize(),
+                    )
                     is ReceiveState.Completed -> Box(Modifier.fillMaxSize())
                     is ReceiveState.Failed -> Failed(session.error, actions.onRetry)
                 }
@@ -222,35 +240,60 @@ private fun Connected(session: ReceiveState.Connected) {
 private fun OfferCard(peer: Peer, digits: String, offer: ProtocolMessage.Offer) {
     val c = KaffTheme.colors
     val first = offer.files.first()
+    val thumbnail = rememberJpeg(offer.thumbnailBytes())
+    val kinds = offer.files.map { it.kind }
     KaffCard(highlighted = true) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            FileTile(rememberJpeg(offer.thumbnailBytes()), first.kind, size = 48.dp, shape = KaffShapes.medium, bordered = false)
+            if (offer.files.size > 1) {
+                MiniStack(offer.files.take(3).mapIndexed { index, file -> StackCard(thumbnail.takeIf { index == 0 }, file.kind) })
+            } else {
+                FileTile(thumbnail, first.kind, size = 48.dp, shape = KaffShapes.medium, bordered = false)
+            }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 val title = if (offer.files.size > 1) {
-                    stringResource(R.string.receive_offer_many, pluralStringResource(R.plurals.file_count, offer.files.size, offer.files.size), peer.name)
+                    stringResource(R.string.receive_offer_items, itemCount(offer.files.size), peer.name)
                 } else {
                     stringResource(
                         when (first.kind) {
                             FileKind.Image -> R.string.receive_offer_image
                             FileKind.Video -> R.string.receive_offer_video
-                            FileKind.Other -> R.string.receive_offer_file
+                            else -> R.string.receive_offer_file
                         },
                         peer.name,
                     )
                 }
-                Text(title, style = MaterialTheme.typography.titleMedium, color = c.text)
+                Text(title, style = MaterialTheme.typography.titleMedium, color = c.text, maxLines = 2)
                 Text(
-                    (if (offer.files.size == 1) first.name + " · " else "") + fileSizeText(offer.totalBytes),
+                    (if (offer.files.size == 1) first.name else kindSummary(kinds)) + " · " + fileSizeText(offer.totalBytes),
                     style = MaterialTheme.typography.bodyMedium,
                     color = c.textMuted,
-                    maxLines = 1,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(KaffIcons.ShieldCheck, contentDescription = null, tint = c.primary, modifier = Modifier.size(16.dp))
-            Text(stringResource(R.string.receive_verified, digits), style = MaterialTheme.typography.bodyMedium, color = c.primarySoft)
+            Text(stringResource(R.string.receive_verified_code, digits), style = MaterialTheme.typography.bodyMedium, color = c.primarySoft)
         }
+    }
+}
+
+@Composable
+private fun receiverRows(session: ReceiveState.Receiving): List<TransferRow> {
+    val offerThumbnail = rememberJpeg(session.offer.thumbnailBytes())
+    return session.offer.files.mapIndexed { index, meta ->
+        val saved = session.saved[index]
+        val savedThumb = rememberThumbnail(saved?.uri?.takeIf { meta.kind != FileKind.Other && meta.kind != FileKind.App })
+        TransferRow(
+            name = meta.name,
+            size = meta.size,
+            kind = meta.kind,
+            image = savedThumb ?: offerThumbnail.takeIf { index == 0 },
+            bytes = session.bytesOf(index),
+            done = saved != null,
+            skipped = index in session.skipped,
+        )
     }
 }
 
@@ -275,6 +318,7 @@ private fun Offered(session: ReceiveState.Offered, state: ReceiveUiState, analyz
                 idlePose = HandPoses.OPEN,
                 glowState = GestureState.OpenPalm,
                 shape = CircleShape,
+                showPreview = false,
                 modifier = Modifier.size(210.dp),
             )
         }
@@ -284,7 +328,7 @@ private fun Offered(session: ReceiveState.Offered, state: ReceiveUiState, analyz
                 if (snapshot.stable.state == GestureState.OpenPalm) {
                     stringResource(R.string.gesture_palm_confidence, (snapshot.stable.confidence * 100).roundToInt())
                 } else {
-                    stringResource(R.string.receive_open_hand)
+                    stringResource(if (session.offer.files.size > 1) R.string.receive_open_hand_basket else R.string.receive_open_hand)
                 },
                 style = MaterialTheme.typography.headlineSmall,
                 color = if (snapshot.stable.state == GestureState.OpenPalm) c.primary else c.text,
@@ -307,39 +351,14 @@ private fun Offered(session: ReceiveState.Offered, state: ReceiveUiState, analyz
             Text(stringResource(R.string.receive_hold_hint), style = MaterialTheme.typography.bodyMedium, color = c.textMuted)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            PrimaryButton(stringResource(R.string.receive_accept), actions.onAccept, modifier = Modifier.weight(1f), height = 54.dp)
+            PrimaryButton(
+                stringResource(if (session.offer.files.size > 1) R.string.receive_accept_all else R.string.receive_accept),
+                actions.onAccept,
+                modifier = Modifier.weight(1f),
+                height = 54.dp,
+            )
             SecondaryButton(stringResource(R.string.receive_reject), actions.onReject, modifier = Modifier.weight(1f), accent = false)
         }
-    }
-}
-
-@Composable
-private fun Receiving(session: ReceiveState.Receiving) {
-    val c = KaffTheme.colors
-    val progress by animateFloatAsState(session.progress, label = "receive")
-    val saving = session.progress >= 1f
-    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-        OfferCard(session.peer, session.authDigits, session.offer)
-        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-            PulseRings(progress, Modifier.size(280.dp))
-            FileTile(rememberJpeg(session.offer.thumbnailBytes()), session.offer.files.first().kind, size = 120.dp)
-        }
-        Text(
-            if (saving) stringResource(R.string.receive_saving) else stringResource(R.string.receive_receiving, (session.progress * 100).roundToInt()),
-            style = MaterialTheme.typography.titleLarge,
-            color = c.text,
-        )
-        LinearProgressIndicator(
-            progress = { progress },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(6.dp)
-                .clip(KaffShapes.pill),
-            color = c.primary,
-            trackColor = c.text.copy(alpha = 0.1f),
-            gapSize = 0.dp,
-            drawStopIndicator = {},
-        )
     }
 }
 

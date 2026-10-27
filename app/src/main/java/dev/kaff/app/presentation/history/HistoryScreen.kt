@@ -26,7 +26,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.kaff.app.R
 import dev.kaff.app.core.util.fileSizeText
-import dev.kaff.app.domain.model.FileKind
+import dev.kaff.app.ui.components.icon
 import dev.kaff.app.domain.model.FileMeta
 import dev.kaff.app.domain.model.TransferDirection
 import dev.kaff.app.domain.model.TransferRecord
@@ -103,14 +103,7 @@ private fun HistoryRow(record: TransferRecord) {
     val kind = FileMeta(record.firstFileName, 0, record.firstMime, "").kind
     KaffCard(contentPadding = PaddingValues(14.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            IconBadge(
-                when (kind) {
-                    FileKind.Image -> KaffIcons.Image
-                    FileKind.Video -> KaffIcons.Video
-                    FileKind.Other -> KaffIcons.File
-                },
-                tint = if (record.success) c.primary else c.danger,
-            )
+            IconBadge(kind.icon(), tint = if (record.success) c.primary else c.danger)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     stringResource(

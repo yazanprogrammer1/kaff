@@ -51,10 +51,13 @@ sealed interface ProtocolMessage {
     @SerialName("file")
     data class FileHeader(val transferId: String, val index: Int, val payloadId: Long) : ProtocolMessage
 
-    /** Receiver's receipt: SHA-256 of every saved file, in offer order. */
+    /**
+     * Receiver's receipt: SHA-256 of every saved file in offer order. [skipped] lists offer indexes
+     * the receiver did not keep ("cancel remaining"); older peers omit it, meaning none.
+     */
     @Serializable
     @SerialName("done")
-    data class Done(val transferId: String, val sha256: List<String>) : ProtocolMessage
+    data class Done(val transferId: String, val sha256: List<String>, val skipped: List<Int> = emptyList()) : ProtocolMessage
 
     @Serializable
     enum class Reason { UserDeclined, Timeout, UserCancelled, Integrity, StorageError }

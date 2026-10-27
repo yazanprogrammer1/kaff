@@ -203,6 +203,50 @@ class ReceiveReducerTest {
     }
 
     @Test
+    fun `cancel remaining keeps saved files and waits for the one being saved`() {
+        clock.now = 0
+        var state: ReceiveState = receiving()
+        state = reducer.reduce(state, msg(ProtocolMessage.FileHeader("t1", 0, 7L))).model
+        state = reducer.reduce(state, msg(ProtocolMessage.FileHeader("t1", 1, 8L))).model
+        // File 0 fully arrived and is being saved; file 1 is still in flight.
+        state = reducer.reduce(state, t(TransportEvent.PayloadCompleted("A", 7L, outgoing = false, file = FakeReceivedFile(ByteArray(10))))).model
+        var r = reducer.reduce(state, ReceiveEvent.CancelRemaining)
+        val stopping = r.model as ReceiveState.Receiving
+        assertTrue(stopping.stopping)
+        assertEquals(setOf(1), stopping.skipped)
+        assertTrue(r.effects.contains(ReceiveEffect.CancelPayloads(listOf(8L))))
+
+        // The cancelled payload failing is expected, not an error.
+        r = reducer.reduce(r.model, t(TransportEvent.PayloadFailed("A", 8L, outgoing = false)))
+        assertTrue(r.model is ReceiveState.Receiving)
+
+        clock.now = 300
+        r = reducer.reduce(r.model, ReceiveEvent.FileSaved("t1", 0, saved(metaA)))
+        val done = r.model as ReceiveState.Completed
+        assertEquals(listOf(saved(metaA)), done.saved)
+        assertEquals(setOf(1), done.skipped)
+        assertEquals(10L, done.stats.bytes)
+        assertTrue(r.effects.contains(ReceiveEffect.Send("A", ProtocolMessage.Done("t1", listOf("aa"), listOf(1)))))
+    }
+
+    @Test
+    fun `cancel remaining before anything arrived returns to the paired state`() {
+        val r = reducer.reduce(receiving(), ReceiveEvent.CancelRemaining)
+        assertEquals(connected.copy(notice = null), (r.model as ReceiveState.Connected).copy(notice = null))
+        assertTrue(r.effects.contains(ReceiveEffect.Send("A", ProtocolMessage.Done("t1", emptyList(), listOf(0, 1)))))
+    }
+
+    @Test
+    fun `sender cancel while receiving keeps what already arrived`() {
+        var state: ReceiveState = receiving()
+        state = reducer.reduce(state, ReceiveEvent.FileSaved("t1", 0, saved(metaA))).model
+        val r = reducer.reduce(state, msg(ProtocolMessage.Cancel("t1", ProtocolMessage.Reason.UserCancelled)))
+        val done = r.model as ReceiveState.Completed
+        assertEquals(listOf(saved(metaA)), done.saved)
+        assertEquals(setOf(1), done.skipped)
+    }
+
+    @Test
     fun `storage failure is reported as save failed`() {
         assertEquals(ReceiveState.Failed(TransferError.SaveFailed), reducer.reduce(receiving(), ReceiveEvent.SaveFailed("t1", 0, integrity = false)).model)
     }

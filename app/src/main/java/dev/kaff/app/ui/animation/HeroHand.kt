@@ -70,7 +70,19 @@ fun HeroHand(modifier: Modifier = Modifier, size: Dp = 250.dp, animate: Boolean 
                 drawCircle(c.primary.copy(alpha = 0.25f * (1f - pulse)), r, center, style = Stroke(1.5.dp.toPx()))
             }
             val disc = outer - 46.dp.toPx()
-            drawCircle(c.primary.copy(alpha = 0.18f + 0.1f * t), disc + 18.dp.toPx(), center)
+            // Soft light spilling out of the disc (the design's 60px box-shadow), not a hard band.
+            val halo = disc + 40.dp.toPx()
+            drawCircle(
+                Brush.radialGradient(
+                    0f to c.primary.copy(alpha = 0.3f + 0.12f * t),
+                    disc / halo to c.primary.copy(alpha = 0.22f + 0.1f * t),
+                    1f to c.primary.copy(alpha = 0f),
+                    center = center,
+                    radius = halo,
+                ),
+                halo,
+                center,
+            )
             drawCircle(
                 Brush.radialGradient(
                     listOf(if (c.isDark) c.glow.copy(alpha = 1f) else c.glow, c.background),
@@ -92,7 +104,7 @@ fun HeroHand(modifier: Modifier = Modifier, size: Dp = 250.dp, animate: Boolean 
             tipRadius = 4.5.dp,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(size * 0.3f),
+                .padding(size * 0.22f),
         )
     }
 }

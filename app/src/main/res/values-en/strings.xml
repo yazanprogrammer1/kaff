@@ -4,7 +4,6 @@
 
     <!-- Common -->
     <string name="action_close">Close</string>
-    <string name="action_cancel">Cancel</string>
     <string name="action_back">Back</string>
     <string name="action_settings">Settings</string>
     <string name="action_retry">Try again</string>
@@ -37,12 +36,7 @@
     <string name="gesture_palm_confidence">Open palm · %1$d%% sure</string>
 
     <!-- Send -->
-    <string name="send_pick_title">What do you want to send?</string>
-    <string name="send_pick_body">Pick a photo, a video or any file, then grab it with a fist.</string>
-    <string name="send_pick_media">Photos &amp; videos</string>
-    <string name="send_pick_files">Any file</string>
     <string name="send_change_files">Change</string>
-    <string name="send_preparing">Preparing the file…</string>
     <string name="send_searching">Looking for a nearby phone…</string>
     <string name="send_searching_hint">Open \"Receive\" on the other phone.</string>
     <string name="send_peer_ready">Nearby phone ready</string>
@@ -58,11 +52,6 @@
     <string name="send_grabbed_video">Video grabbed</string>
     <string name="send_grabbed_file">File grabbed</string>
     <string name="send_open_hand_other">Open your palm at the other phone</string>
-    <string name="send_sending">Sending… %1$d%%</string>
-    <string name="send_waiting_receipt">Checking the file arrived intact…</string>
-    <string name="send_done_title">Delivered</string>
-    <string name="send_done_body">%1$s · %2$s</string>
-    <string name="send_again">Send another file</string>
     <plurals name="send_countdown">
         <item quantity="one">%d second left before the offer expires.</item>
         <item quantity="other">%d seconds left before the offer expires.</item>
@@ -84,14 +73,11 @@
     <string name="receive_offer_image">Photo from %1$s</string>
     <string name="receive_offer_video">Video from %1$s</string>
     <string name="receive_offer_file">File from %1$s</string>
-    <string name="receive_offer_many">%1$s from %2$s</string>
     <string name="receive_verified">Encrypted &amp; verified · code %1$s</string>
     <string name="receive_open_hand">Open your palm to receive</string>
     <string name="receive_hold_hint">Hold your hand still to confirm</string>
     <string name="receive_accept">Accept</string>
     <string name="receive_reject">Decline</string>
-    <string name="receive_receiving">Receiving… %1$d%%</string>
-    <string name="receive_saving">Verifying and saving…</string>
     <plurals name="receive_watching">
         <item quantity="one">Camera watching · %d second</item>
         <item quantity="other">Camera watching · %d seconds</item>
@@ -104,14 +90,10 @@
     <string name="done_title_many">%1$s received</string>
     <string name="done_meta">%1$s · %2$s · in %3$s</string>
     <string name="done_speed">%1$s/s</string>
-    <string name="done_saved_gallery">Saved to your gallery</string>
-    <string name="done_saved_downloads">Saved to Downloads</string>
-    <string name="done_saved_app">Saved to app files</string>
     <string name="done_open_image">Open photo</string>
     <string name="done_open_video">Open video</string>
     <string name="done_open_file">Open file</string>
     <string name="done_open_failed">No app can open this kind of file.</string>
-    <string name="done_transfer_another">Transfer another file</string>
 
     <!-- Units -->
     <string name="size_bytes">%1$s B</string>
@@ -239,4 +221,94 @@
     <!-- Quick tiles -->
     <string name="tile_send">Kaff · Send</string>
     <string name="tile_receive">Kaff · Receive</string>
+
+    <!-- v2: basket, picker, transfer -->
+    <string name="picker_title">Choose what to send</string>
+    <string name="picker_search">Search</string>
+    <string name="picker_search_hint">Search by name</string>
+    <string name="tab_photos">Photos</string>
+    <string name="tab_videos">Videos</string>
+    <string name="tab_apps">Apps</string>
+    <string name="tab_files">Files</string>
+    <string name="tab_audio">Audio</string>
+    <string name="picker_recent">Recent · %1$s</string>
+    <string name="picker_select_all">Select all</string>
+    <string name="picker_clear_all">Clear</string>
+    <string name="picker_hint">Then raise your hand and grab the basket</string>
+    <string name="picker_access_title">Let Kaff see your files</string>
+    <string name="picker_access_body">So you can pick right here. Or use the system picker with no permission at all.</string>
+    <string name="picker_access_grant">Allow access</string>
+    <string name="picker_access_system">Pick from gallery</string>
+    <string name="picker_partial">You allowed only some items</string>
+    <string name="picker_partial_more">Choose more</string>
+    <string name="picker_files_add">Add files</string>
+    <string name="picker_files_body">Pick documents or any file from your phone or cloud storage.</string>
+    <string name="picker_app_split">Split app · cannot be shared</string>
+    <string name="picker_empty">Nothing here yet</string>
+    <string name="picker_no_results">Nothing matches that name</string>
+    <string name="picker_limit">The basket is full (max %1$d)</string>
+    <string name="picker_selected">Selected</string>
+    <string name="picker_not_selected">Not selected</string>
+    <string name="basket_title">Basket · %1$s</string>
+    <string name="basket_ready">Ready</string>
+    <string name="send_grabbed_basket">Basket grabbed</string>
+    <string name="send_make_fist_basket">Grab the basket with a fist</string>
+    <string name="send_drop_title">Drop the basket at the other phone</string>
+    <string name="send_preparing_basket">Preparing the basket…</string>
+    <string name="receive_offer_items">%1$s from %2$s</string>
+    <string name="receive_verified_code">Encrypted · code %1$s</string>
+    <string name="receive_open_hand_basket">Open your palm to take the basket</string>
+    <string name="receive_accept_all">Accept all</string>
+    <string name="transfer_sending">Sending</string>
+    <string name="transfer_receiving">Receiving</string>
+    <string name="transfer_items_progress">%1$s of %2$s</string>
+    <string name="transfer_bytes">%1$s of %2$s</string>
+    <string name="transfer_eta_calc">Estimating…</string>
+    <string name="transfer_note">Keep this screen open · small files move in parallel</string>
+    <string name="transfer_cancel_remaining">Cancel the rest</string>
+    <string name="transfer_cancelling">Stopping the rest and keeping what arrived…</string>
+    <string name="transfer_verifying">Verifying the files…</string>
+    <string name="transfer_percent">%1$s%%</string>
+    <string name="done_meta_short">%1$s · in about %2$s</string>
+    <string name="done_speed_avg">Average %1$s</string>
+    <string name="done_open_folder">Open folder</string>
+    <string name="done_new_transfer">New transfer</string>
+    <string name="done_pdf">PDF file</string>
+    <string name="send_done_count">%1$s delivered</string>
+    <plurals name="count_images">
+        <item quantity="one">%d photo</item>
+        <item quantity="other">%d photos</item>
+    </plurals>
+    <plurals name="count_videos">
+        <item quantity="one">%d video</item>
+        <item quantity="other">%d videos</item>
+    </plurals>
+    <plurals name="count_audio">
+        <item quantity="one">%d audio clip</item>
+        <item quantity="other">%d audio clips</item>
+    </plurals>
+    <plurals name="count_apps">
+        <item quantity="one">%d app</item>
+        <item quantity="other">%d apps</item>
+    </plurals>
+    <plurals name="count_files">
+        <item quantity="one">%d file</item>
+        <item quantity="other">%d files</item>
+    </plurals>
+    <plurals name="count_items">
+        <item quantity="one">%d item</item>
+        <item quantity="other">%d items</item>
+    </plurals>
+    <plurals name="transfer_eta">
+        <item quantity="one">About %d second left</item>
+        <item quantity="other">About %d seconds left</item>
+    </plurals>
+    <plurals name="send_drop_hint">
+        <item quantity="one">Open your palm at it within %d second.</item>
+        <item quantity="other">Open your palm at it within %d seconds.</item>
+    </plurals>
+    <plurals name="done_skipped">
+        <item quantity="one">%d item not received · cancelled</item>
+        <item quantity="other">%d items not received · cancelled</item>
+    </plurals>
 </resources>

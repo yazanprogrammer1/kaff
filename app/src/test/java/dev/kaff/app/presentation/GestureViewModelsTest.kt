@@ -11,6 +11,9 @@ import dev.kaff.app.domain.transfer.ReceiveState
 import dev.kaff.app.domain.transfer.SendController
 import dev.kaff.app.domain.transfer.SendEvent
 import dev.kaff.app.domain.transfer.SendState
+import dev.kaff.app.domain.model.PickItem
+import dev.kaff.app.domain.model.PickSource
+import dev.kaff.app.presentation.common.Basket
 import dev.kaff.app.presentation.common.GestureCamera
 import dev.kaff.app.presentation.common.GestureCameraFactory
 import dev.kaff.app.presentation.receive.LastReceiveHolder
@@ -89,10 +92,11 @@ class GestureViewModelsTest {
             network.device("B"), FakeFileRepository(), FakeHistory(), RecordingFeedback(), RecordingNotifier(),
             FixedDevice("Galaxy A54"), clock, controllersScope, dispatcher,
         )
-        private val files: FileRepository = mockk { coEvery { prepare(file.uri) } returns file }
+        private val files: FileRepository = mockk { coEvery { prepare(any()) } returns file }
+        private val basket = Basket().apply { toggle(PickItem(file.uri, file.meta.name, file.meta.size, file.meta.mime, PickSource.Media)) }
 
         // Each phone has its own process in reality; idle stand-ins replace the other role here.
-        val sendVm = SendViewModel(send, mockk(relaxed = true), files, cameraFactory(senderTracker))
+        val sendVm = SendViewModel(send, mockk(relaxed = true), files, basket, cameraFactory(senderTracker))
         val receiveVm = ReceiveViewModel(receive, mockk(relaxed = true), FixedDevice("Galaxy A54"), LastReceiveHolder(), cameraFactory(receiverTracker))
     }
 
@@ -113,7 +117,6 @@ class GestureViewModelsTest {
 
     private fun TestScope.pair(world: World) {
         settle()
-        world.sendVm.onFilesPicked(listOf(file.uri))
         settle()
         assertTrue(world.receive.state.value is ReceiveState.PairingRequest)
     }

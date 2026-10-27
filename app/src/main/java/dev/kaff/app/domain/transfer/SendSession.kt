@@ -34,6 +34,7 @@ sealed interface SendState {
 
     data class Transferring(
         val peer: Peer,
+        val authDigits: String,
         val transferId: String,
         val totalBytes: Long,
         val startedAtMs: Long,
@@ -41,7 +42,14 @@ sealed interface SendState {
         val sentBytes: Map<Long, Long> = emptyMap(),
         val completed: Set<Long> = emptySet(),
     ) : SendState {
-        val progress: Float get() = if (totalBytes <= 0) 0f else (sentBytes.values.sum().toFloat() / totalBytes).coerceIn(0f, 1f)
+        val sentTotal: Long get() = sentBytes.values.sum()
+
+        val progress: Float get() = if (totalBytes <= 0) 0f else (sentTotal.toFloat() / totalBytes).coerceIn(0f, 1f)
+
+        /** Bytes sent so far for the file at [index] (0 until it is queued). */
+        fun bytesOf(index: Int): Long = payloadIds.getOrNull(index)?.let { sentBytes[it] } ?: 0
+
+        fun isDone(index: Int): Boolean = payloadIds.getOrNull(index)?.let { it in completed } ?: false
     }
 
     data class AwaitingReceipt(
@@ -49,9 +57,13 @@ sealed interface SendState {
         val transferId: String,
         val totalBytes: Long,
         val startedAtMs: Long,
+        /** True after "cancel remaining": waiting for the receiver to say what it kept. */
+        val cancelling: Boolean = false,
+        val authDigits: String = "",
     ) : SendState
 
-    data class Completed(val peer: Peer, val stats: TransferStats) : SendState
+    /** [skipped] holds offer indexes the receiver did not keep (cancel remaining). */
+    data class Completed(val peer: Peer, val stats: TransferStats, val skipped: Set<Int> = emptySet()) : SendState
 
     data class Failed(val error: TransferError) : SendState
 }
@@ -68,6 +80,9 @@ sealed interface SendEvent {
     data object Cancel : SendEvent
     data object Retry : SendEvent
     data object SendAnother : SendEvent
+
+    /** Stop after the files already delivered; the receiver keeps those. */
+    data object CancelRemaining : SendEvent
     /** Discovery could not start; [error] says why (permission, location, Bluetooth). */
     data class RadioFailed(val error: TransferError) : SendEvent
     data class Transport(val event: TransportEvent) : SendEvent
@@ -298,6 +313,7 @@ class SendReducer(
                     model.copy(
                         state = SendState.Transferring(
                             peer = state.peer,
+                            authDigits = state.authDigits,
                             transferId = state.transferId,
                             totalBytes = model.files.sumOf { it.meta.size },
                             startedAtMs = clock.elapsedMs(),
@@ -323,6 +339,16 @@ class SendReducer(
     }
 
     private fun transferring(model: SendModel, state: SendState.Transferring, event: SendEvent): T = when (event) {
+        SendEvent.CancelRemaining -> T(
+            model.copy(
+                state = SendState.AwaitingReceipt(state.peer, state.transferId, state.totalBytes, state.startedAtMs, cancelling = true, authDigits = state.authDigits),
+            ),
+            // The receiver cancels the payloads it will not keep and answers with a partial DONE.
+            listOf(
+                SendEffect.Send(state.peer.endpointId, ProtocolMessage.Cancel(state.transferId, Reason.UserCancelled)),
+                SendEffect.StartTimer(SendTimer.Receipt, timeouts.receiptMs),
+            ),
+        )
         is SendEvent.FilesQueued -> if (event.transferId == state.transferId) {
             maybeAllSent(model, state.copy(payloadIds = event.payloadIds))
         } else {
@@ -356,7 +382,7 @@ class SendReducer(
                     is TransportEvent.MessageReceived -> when (val m = t.message) {
                         // The receipt can overtake our last progress callback.
                         is ProtocolMessage.Done -> if (m.transferId == state.transferId) {
-                            receipt(model, state.peer, state.transferId, state.totalBytes, state.startedAtMs, m)
+                            receipt(model, state.peer, state.authDigits, state.transferId, state.startedAtMs, m)
                         } else {
                             T(model)
                         }
@@ -379,7 +405,7 @@ class SendReducer(
         val allSent = state.payloadIds.size == model.files.size && state.completed.containsAll(state.payloadIds)
         if (!allSent) return T(model.copy(state = state))
         return T(
-            model.copy(state = SendState.AwaitingReceipt(state.peer, state.transferId, state.totalBytes, state.startedAtMs)),
+            model.copy(state = SendState.AwaitingReceipt(state.peer, state.transferId, state.totalBytes, state.startedAtMs, authDigits = state.authDigits)),
             listOf(SendEffect.StartTimer(SendTimer.Receipt, timeouts.receiptMs)),
         )
     }
@@ -396,7 +422,7 @@ class SendReducer(
             when {
                 t.endpointId != state.peer.endpointId -> T(model)
                 message is ProtocolMessage.Done && message.transferId == state.transferId ->
-                    receipt(model, state.peer, state.transferId, state.totalBytes, state.startedAtMs, message)
+                    receipt(model, state.peer, state.authDigits, state.transferId, state.startedAtMs, message)
                 message is ProtocolMessage.Cancel && message.transferId == state.transferId -> {
                     val error = if (message.reason == Reason.Integrity) TransferError.Integrity else TransferError.CancelledByPeer
                     fail(model, state.peer, state.transferId, error, state.startedAtMs, emptyList())
@@ -412,21 +438,31 @@ class SendReducer(
     private fun receipt(
         model: SendModel,
         peer: Peer,
+        authDigits: String,
         transferId: String,
-        totalBytes: Long,
         startedAtMs: Long,
         done: ProtocolMessage.Done,
     ): T {
-        if (done.sha256 != model.files.map { it.meta.sha256 }) {
+        val skipped = done.skipped.filter { it in model.files.indices }.toSet()
+        val delivered = model.files.filterIndexed { index, _ -> index !in skipped }
+        if (done.sha256 != delivered.map { it.meta.sha256 }) {
             return fail(model, peer, transferId, TransferError.Integrity, startedAtMs, emptyList())
         }
+        if (delivered.isEmpty()) {
+            // Everything was cancelled before arriving: stay paired for another try.
+            return T(
+                model.copy(state = SendState.Ready(peer, authDigits)),
+                listOf(SendEffect.CancelTimer(SendTimer.Receipt), SendEffect.StartTimer(SendTimer.Idle, timeouts.idleMs)),
+            )
+        }
         val duration = clock.elapsedMs() - startedAtMs
+        val bytes = delivered.sumOf { it.meta.size }
         return T(
-            model.copy(state = SendState.Completed(peer, TransferStats(totalBytes, duration))),
+            model.copy(state = SendState.Completed(peer, TransferStats(bytes, duration), skipped)),
             listOf(
                 SendEffect.CancelTimer(SendTimer.Receipt),
                 SendEffect.Feedback(FeedbackKind.Success),
-                SendEffect.Record(record(model, peer, success = true, durationMs = duration)),
+                SendEffect.Record(record(model, peer, success = true, durationMs = duration, files = delivered)),
                 SendEffect.StopAll,
             ),
         )
@@ -486,13 +522,19 @@ class SendReducer(
         return T(SendModel(), effects)
     }
 
-    private fun record(model: SendModel, peer: Peer, success: Boolean, durationMs: Long): TransferRecord {
-        val first = model.files.firstOrNull()?.meta
+    private fun record(
+        model: SendModel,
+        peer: Peer,
+        success: Boolean,
+        durationMs: Long,
+        files: List<OutgoingFile> = model.files,
+    ): TransferRecord {
+        val first = files.firstOrNull()?.meta
         return TransferRecord(
             direction = TransferDirection.Sent,
             peerName = peer.name,
-            fileCount = model.files.size,
-            totalBytes = model.files.sumOf { it.meta.size },
+            fileCount = files.size,
+            totalBytes = files.sumOf { it.meta.size },
             firstFileName = first?.name.orEmpty(),
             firstMime = first?.mime.orEmpty(),
             success = success,
