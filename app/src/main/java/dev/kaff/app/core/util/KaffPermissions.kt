@@ -28,8 +28,9 @@ object KaffPermissions {
     }
 
     /**
-     * Google Play services Nearby rejects discovery without location (status 8034), on every
-     * Android version. Approximate location is enough; precise is only offered.
+     * Google Play services Nearby rejects discovery without location on every Android version.
+     * Measured 2026-10-27: Play services 26.41 on Android 16 refuses discovery without PRECISE
+     * location (status 8036, MISSING_PERMISSION_ACCESS_FINE_LOCATION), so precise is required.
      */
     val location: List<String> = listOf(Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION)
 
@@ -55,8 +56,8 @@ object KaffPermissions {
     val notifications: List<String> =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) listOf(Manifest.permission.POST_NOTIFICATIONS) else emptyList()
 
-    /** Needed before any transfer screen can work (precise location is optional). */
-    val required: List<String> = camera + radio + Manifest.permission.ACCESS_COARSE_LOCATION
+    /** Needed before any transfer screen can work. */
+    val required: List<String> = camera + radio + location
 
     /** Requested together, so the system shows one flow. */
     val all: List<String> = camera + nearby + notifications
@@ -64,11 +65,11 @@ object KaffPermissions {
     fun granted(context: Context, permission: String): Boolean =
         ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
 
-    fun locationGranted(context: Context): Boolean = granted(context, Manifest.permission.ACCESS_COARSE_LOCATION)
+    fun locationGranted(context: Context): Boolean = granted(context, Manifest.permission.ACCESS_FINE_LOCATION)
 
     fun missingRequired(context: Context): List<String> = required.filterNot { granted(context, it) }
 
     /** What Standby mode needs to advertise without the camera. */
     fun missingNearby(context: Context): List<String> =
-        (radio + Manifest.permission.ACCESS_COARSE_LOCATION).filterNot { granted(context, it) }
+        (radio + location).filterNot { granted(context, it) }
 }

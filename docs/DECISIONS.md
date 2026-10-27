@@ -154,3 +154,23 @@ These cannot be verified without real phones.
   `BandwidthInfo.Quality.HIGH` before queueing files, and the transfer screen shows the
   link state. Step 2, a custom Wi-Fi Direct 5 GHz lane with parallel TCP streams, is only
   worth it if measured speeds stay low.
+
+## Speed measurements (2026-10-27, OPPO SM6450 Wi-Fi 6 <-> Infinix MT6769 Wi-Fi 5 1x1)
+
+Measured with the debug-only `TurboProbe` (src/debug, adb-driven, zero-filled payload):
+
+| Path | 500 MB |
+|---|---|
+| Nearby DISRUPTIVE, upgraded to WIFI_DIRECT 5765 MHz | 12.5 MB/s (41 s) |
+| Own Wi-Fi Direct group 5 GHz, 1 TCP stream | 14.0 MB/s |
+| Own Wi-Fi Direct group 5 GHz, 4 TCP streams | 15.8 MB/s |
+| Own Wi-Fi Direct group 5 GHz, 8 TCP streams | 17–18 MB/s |
+
+- The Infinix radio (1x1 Wi-Fi 5) is the ceiling. A custom lane gains about +40% on this
+  pair; on two Wi-Fi 6 2x2 phones the gap should be larger, but that is unmeasured.
+- Findings for a production lane: sockets must be bound to the `p2p*` interface (otherwise
+  Android routes 192.168.49.1 over the regular Wi-Fi interface). ColorOS returned BUSY to
+  `connect` until pending P2P state was cleared. Wi-Fi Direct needs Wi-Fi enabled.
+  `NEARBY_WIFI_DEVICES` is now declared `neverForLocation`, so P2P does not need location.
+- Play services 26.41 requires PRECISE location for Nearby discovery (status 8036); precise is
+  now required. ColorOS keeps grants made from the upgrade prompt as one-time.

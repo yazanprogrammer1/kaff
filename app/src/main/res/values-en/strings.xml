@@ -195,7 +195,7 @@
     <string name="perm_nearby_title">Nearby devices</string>
     <string name="perm_nearby_body">To find the other phone and connect directly, without internet.</string>
     <string name="perm_location_title">Location</string>
-    <string name="perm_location_body">Google Play services Nearby requires it to find the other phone. Kaff never reads or stores your location; approximate is enough.</string>
+    <string name="perm_location_body">Google Play services Nearby needs PRECISE location to find the other phone. Choose "Precise" in the prompt. Kaff never reads or stores your location.</string>
     <string name="perm_notifications_title">Notifications</string>
     <string name="perm_notifications_body">To tell you when someone wants to send you a file while Kaff is in the background.</string>
     <string name="perm_grant">Allow</string>

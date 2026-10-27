@@ -207,7 +207,7 @@
     <string name="perm_nearby_title">الأجهزة القريبة</string>
     <string name="perm_nearby_body">نلقى الجوال الثاني ونتصل فيه مباشرة بدون إنترنت.</string>
     <string name="perm_location_title">الموقع</string>
-    <string name="perm_location_body">خدمات Google للأجهزة القريبة تطلبه عشان تلقى الجوال الثاني. ما نقرأ موقعك ولا نحفظه أبداً، والموقع التقريبي يكفي.</string>
+    <string name="perm_location_body">خدمات Google للأجهزة القريبة تطلب الموقع «الدقيق» عشان تلقى الجوال الثاني. اختر «دقيق» في الطلب. ما نقرأ موقعك ولا نحفظه أبداً.</string>
     <string name="perm_notifications_title">الإشعارات</string>
     <string name="perm_notifications_body">ننبهك لما أحد يبي يرسل لك ملف وكفّ بالخلفية.</string>
     <string name="perm_grant">سماح</string>
