@@ -14,7 +14,8 @@ class GestureLabViewModel @Inject constructor(
     cameraFactory: GestureCameraFactory,
 ) : ViewModel() {
 
-    private val camera = cameraFactory.create(viewModelScope)
+    // The Lab is opened on purpose to watch the tracker: no auto-timeout; leaving the screen stops it.
+    private val camera = cameraFactory.create(viewModelScope, autoTimeout = false)
 
     val analyzer: ImageAnalysis.Analyzer get() = camera.tracker
     val state: StateFlow<GestureCameraState> = camera.state

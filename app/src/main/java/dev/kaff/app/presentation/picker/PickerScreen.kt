@@ -32,7 +32,9 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -48,6 +50,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -60,6 +63,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -178,10 +182,7 @@ fun PickerScreen(state: PickerUiState, actions: PickerActions) {
                 BasketBar(
                     state.basket,
                     actions.onReady,
-                    Modifier
-                        .align(Alignment.BottomCenter)
-                        .navigationBarsPadding()
-                        .padding(horizontal = 16.dp, vertical = 16.dp),
+                    Modifier.align(Alignment.BottomCenter),
                 )
             }
         }
@@ -288,7 +289,7 @@ private fun tabCount(tab: PickTab, count: Int): String = when (tab) {
 }
 
 /** Space kept free under the content for the floating basket bar. */
-private val BAR_SPACE = 170.dp
+private val BAR_SPACE = 200.dp
 
 @Composable
 private fun Content(state: PickerUiState, actions: PickerActions) {
@@ -430,8 +431,8 @@ private fun AppCell(item: PickItem, selected: Boolean, onClick: () -> Unit) {
         Text(
             if (item.unsupported) stringResource(R.string.picker_app_split) else fileSizeText(item.size),
             style = MaterialTheme.typography.labelSmall,
-            color = c.textMuted,
-            maxLines = 1,
+            color = if (item.unsupported) c.textMuted.copy(alpha = 0.7f) else c.textMuted,
+            maxLines = 2,
             textAlign = TextAlign.Center,
         )
     }
@@ -539,7 +540,16 @@ private fun BasketBar(basket: List<PickItem>, onReady: () -> Unit, modifier: Mod
         exit = slideOutVertically { it * 2 },
         modifier = modifier,
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        // A scrim fades the grid out under the bar so the hint never sits on top of thumbnails.
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .background(Brush.verticalGradient(0f to c.background.copy(alpha = 0f), 0.22f to c.background.copy(alpha = 0.96f), 1f to c.background))
+                .navigationBarsPadding()
+                .padding(start = 16.dp, end = 16.dp, top = 36.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(KaffIcons.Hand, contentDescription = null, tint = c.primarySoft, modifier = Modifier.size(18.dp))
                 Text(stringResource(R.string.picker_hint), style = MaterialTheme.typography.bodyMedium, color = c.primarySoft)
@@ -557,19 +567,17 @@ private fun BasketBar(basket: List<PickItem>, onReady: () -> Unit, modifier: Mod
             ) {
                 MiniStack(basket.take(3).map { StackCard(rememberThumbnail(if (it.packageName == null) it.uri else null, it.packageName), it.kind) })
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(
+                    BasicText(
                         stringResource(R.string.basket_title, itemCount(basket.size)),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = c.text,
+                        style = MaterialTheme.typography.titleMedium.copy(color = c.text),
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                        autoSize = TextAutoSize.StepBased(minFontSize = 12.sp, maxFontSize = MaterialTheme.typography.titleMedium.fontSize),
                     )
-                    Text(
+                    BasicText(
                         fileSizeText(basket.sumOf { it.size }) + " · " + kindSummary(basket.map { it.kind }, "، "),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = c.textMuted,
+                        style = MaterialTheme.typography.bodySmall.copy(color = c.textMuted),
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                        autoSize = TextAutoSize.StepBased(minFontSize = 10.sp, maxFontSize = MaterialTheme.typography.bodySmall.fontSize),
                     )
                 }
                 Row(

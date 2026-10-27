@@ -48,6 +48,21 @@ object HandPoses {
 
     const val ASPECT = W / H
 
+    /**
+     * Re-frames a hand to its own bounding box so it can be drawn at a steady size, wherever it is
+     * in the camera frame. [imageAspect] is the source image's width / height. Returns the
+     * landmarks in 0..1 of the box and the box's aspect ratio.
+     */
+    fun framed(landmarks: List<Landmark>, imageAspect: Float): Pair<List<Landmark>, Float> {
+        val xs = landmarks.map { it.x * imageAspect }
+        val ys = landmarks.map { it.y }
+        val minX = xs.min()
+        val minY = ys.min()
+        val w = (xs.max() - minX).coerceAtLeast(1e-4f)
+        val h = (ys.max() - minY).coerceAtLeast(1e-4f)
+        return landmarks.mapIndexed { i, lm -> Landmark((xs[i] - minX) / w, (ys[i] - minY) / h, lm.z) } to w / h
+    }
+
     /** Linear blend between two poses; 0 = [from], 1 = [to]. */
     fun lerp(from: List<Landmark>, to: List<Landmark>, t: Float): List<Landmark> =
         from.zip(to) { a, b -> Landmark(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t) }

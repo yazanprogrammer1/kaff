@@ -256,9 +256,10 @@ private fun GrabStage(state: SendUiState, analyzer: ImageAnalysis.Analyzer, acti
                 idlePose = HandPoses.FIST,
                 glowState = GestureState.Fist,
                 showPreview = false,
+                wakeable = state.session is SendState.Ready || state.session is SendState.Armed,
                 modifier = Modifier
-                    .padding(top = 150.dp)
-                    .size(190.dp),
+                    .padding(top = 170.dp)
+                    .size(210.dp),
             )
             ParticleTrail(lifted, Modifier.size(width = 220.dp, height = 300.dp).padding(top = 80.dp))
             Box(

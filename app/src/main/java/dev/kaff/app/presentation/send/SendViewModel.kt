@@ -114,12 +114,11 @@ class SendViewModel @Inject constructor(
         }
     }
 
+    /** The fist only matters once a phone is paired, so the camera starts then (and saves power). */
     private fun SendModel.wantsCamera(): Boolean = files.isNotEmpty() && when (state) {
-        is SendState.Searching, is SendState.Connecting, is SendState.AwaitingPairing,
-        is SendState.Ready, is SendState.Armed,
-        -> true
-        SendState.Idle, is SendState.Transferring, is SendState.AwaitingReceipt,
-        is SendState.Completed, is SendState.Failed,
+        is SendState.Ready, is SendState.Armed -> true
+        SendState.Idle, is SendState.Searching, is SendState.Connecting, is SendState.AwaitingPairing,
+        is SendState.Transferring, is SendState.AwaitingReceipt, is SendState.Completed, is SendState.Failed,
         -> false
     }
 

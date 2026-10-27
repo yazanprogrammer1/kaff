@@ -126,7 +126,8 @@ class MediaLibrary @Inject constructor(
                     unsupported = !info.splitSourceDirs.isNullOrEmpty(),
                 )
             }
-            .sortedByDescending { it.dateAddedSec }
+            // Shareable apps first; split-APK apps stay visible but at the end.
+            .sortedWith(compareBy<PickItem> { it.unsupported }.thenByDescending { it.dateAddedSec })
     }
 
     /** Name, size and type of a document the user picked with the system file picker. */

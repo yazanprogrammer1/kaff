@@ -181,7 +181,9 @@ fun SettingsScreen(settings: AppSettings, defaultDeviceName: String, actions: Se
                 ToggleRow(KaffIcons.Bubble, R.string.settings_bubble, R.string.settings_bubble_desc, settings.floatingBubble, actions.onBubble)
                 InfoRow(KaffIcons.Tile, R.string.settings_tile, R.string.settings_tile_desc) {
                     actions.onAddTile?.let { add ->
-                        TextButton(onClick = add) { Text(stringResource(R.string.settings_tile_add), color = c.primarySoft) }
+                        TextButton(onClick = add, contentPadding = PaddingValues(horizontal = 0.dp)) {
+                            Text(stringResource(R.string.settings_tile_add), color = c.primarySoft, style = MaterialTheme.typography.labelMedium)
+                        }
                     }
                 }
             }
@@ -292,11 +294,12 @@ private fun InfoRow(icon: ImageVector, title: Int, body: Int, trailing: @Composa
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         IconBadge(icon, size = 40.dp)
+        // The action sits under the text so a long label never squeezes the description.
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(stringResource(title), style = MaterialTheme.typography.titleSmall, color = c.text)
             Text(stringResource(body), style = MaterialTheme.typography.bodySmall, color = c.textMuted)
+            trailing()
         }
-        trailing()
     }
 }
 

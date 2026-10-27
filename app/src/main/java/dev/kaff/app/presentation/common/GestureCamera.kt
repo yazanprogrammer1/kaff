@@ -69,7 +69,11 @@ class GestureCamera(
     init {
         scope.launch {
             combine(settings, power) { s, p -> s to p }.collect { (s, p) ->
-                engine.thresholds = s.gestureThresholds
+                // Battery saver halves the frame rate; halve the frames needed so a gesture still
+                // confirms in about the same time (~200 ms) instead of feeling sluggish.
+                engine.thresholds = s.gestureThresholds.let { t ->
+                    if (p.batterySaver) t.copy(stableFrames = (t.stableFrames / 2).coerceAtLeast(3), releaseFrames = (t.releaseFrames / 2).coerceAtLeast(2)) else t
+                }
                 timeoutMs = s.cameraTimeoutSec * 1000L
                 tracker.minFrameIntervalMs = if (p.batterySaver) BATTERY_SAVER_INTERVAL_MS else 0L
                 _state.update { it.copy(batterySaver = p.batterySaver, thermalPaused = p.thermalThrottled) }

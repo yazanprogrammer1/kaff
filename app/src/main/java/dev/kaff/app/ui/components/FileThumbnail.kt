@@ -11,6 +11,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -137,7 +138,13 @@ fun FileTile(
                 }
             }
             // App icons keep their own shape, centered on the dark tile.
-            image != null -> Image(image, contentDescription = null, modifier = Modifier.size(size * 0.58f))
+            image != null -> Image(
+                image,
+                contentDescription = null,
+                modifier = Modifier
+                    .size(size * 0.58f)
+                    .clip(RoundedCornerShape(percent = 26)),
+            )
             else -> Icon(
                 kind.icon(),
                 contentDescription = null,
