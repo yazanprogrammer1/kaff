@@ -174,22 +174,31 @@ private fun AddressCard(desktop: DesktopState, onStartHotspot: () -> Unit, onSto
         } else {
             Step(if (hotspot != null) 2 else 1, stringResource(R.string.desktop_step_open))
             val display = url.removePrefix("http://").removeSuffix("/")
+            // The address is typed by hand: one unbroken line, monospaced, always left-to-right.
+            BasicText(
+                display,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(KaffShapes.medium)
+                    .background(c.primary.copy(alpha = 0.1f))
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    color = c.primarySoft,
+                    fontFamily = FontFamily.Monospace,
+                    textDirection = TextDirection.Ltr,
+                    textAlign = TextAlign.Center,
+                ),
+                maxLines = 1,
+                autoSize = TextAutoSize.StepBased(minFontSize = 12.sp, maxFontSize = 26.sp),
+            )
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // The address is typed by hand: big, monospaced and always left-to-right.
-                    BasicText(
-                        display,
-                        style = MaterialTheme.typography.headlineSmall.copy(
-                            color = c.primarySoft,
-                            fontFamily = FontFamily.Monospace,
-                            textDirection = TextDirection.Ltr,
-                        ),
-                        maxLines = 2,
-                        autoSize = TextAutoSize.StepBased(minFontSize = 14.sp, maxFontSize = 24.sp),
-                    )
-                    Text(stringResource(R.string.desktop_step_open_hint), style = MaterialTheme.typography.bodySmall, color = c.textMuted)
-                }
-                QrCode(url, stringResource(R.string.desktop_qr_address), size = 112.dp)
+                Text(
+                    stringResource(R.string.desktop_step_open_hint),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = c.textMuted,
+                    modifier = Modifier.weight(1f),
+                )
+                QrCode(url, stringResource(R.string.desktop_qr_address), size = 104.dp)
             }
             Step(if (hotspot != null) 3 else 2, stringResource(R.string.desktop_step_allow))
         }

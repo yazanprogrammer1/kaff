@@ -333,7 +333,7 @@
     <string name="desktop_subtitle">Transfer with a computer in its browser · offline</string>
     <string name="desktop_step_join">Join Kaff\'s network on the computer</string>
     <string name="desktop_step_open">Open this address in the computer\'s browser</string>
-    <string name="desktop_step_open_hint">The computer must be on the same network.</string>
+    <string name="desktop_step_open_hint">Type it in the browser, or scan the code. The computer must be on the same network.</string>
     <string name="desktop_step_allow">Approve the request that appears here</string>
     <string name="desktop_no_network">This phone isn\'t on Wi-Fi</string>
     <string name="desktop_no_network_body">Start Kaff\'s own network and join it from the computer.</string>
