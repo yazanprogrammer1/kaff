@@ -383,8 +383,6 @@
     <string name="desktop_step_open">افتح هذا العنوان في متصفح الكمبيوتر</string>
     <string name="desktop_step_open_hint">اكتبه في المتصفح، أو امسح الرمز. لازم يكون الكمبيوتر على نفس الشبكة.</string>
     <string name="desktop_step_allow">وافق على الطلب اللي بيطلع هنا</string>
-    <string name="desktop_no_network">الجوال مو متصل بواي فاي</string>
-    <string name="desktop_no_network_body">شغّل شبكة كفّ وخلّ الكمبيوتر يتصل فيها.</string>
     <string name="desktop_hotspot_start">شغّل شبكة كفّ (بدون إنترنت)</string>
     <string name="desktop_hotspot_hint">لو الكمبيوتر على شبكة ثانية أو ما فيه واي فاي أصلاً.</string>
     <string name="desktop_hotspot_failed">ما قدرنا نشغّل الشبكة. شغّل الموقع والواي فاي، أو اطفِ نقطة الاتصال، وجرّب مرة ثانية.</string>
@@ -394,11 +392,10 @@
     <string name="desktop_hotspot_password">كلمة السر</string>
     <string name="desktop_qr_address">رمز QR للعنوان</string>
     <string name="desktop_qr_wifi">رمز QR للاتصال بالشبكة</string>
-    <string name="desktop_connected">متصل: %1$s</string>
     <string name="desktop_files_empty">ما فيه ملفات للكمبيوتر</string>
     <string name="desktop_files_empty_body">أضف ملفات ينزّلها الكمبيوتر، أو ارفع من الكمبيوتر للجوال مباشرة.</string>
     <string name="desktop_files_ready">جاهز للكمبيوتر: %1$s</string>
-    <string name="desktop_files_add">إضافة ملفات</string>
+    <string name="desktop_files_add">من مدير الملفات</string>
     <string name="desktop_files_clear">مسح القائمة</string>
     <string name="desktop_receiving">يستقبل من الكمبيوتر…</string>
     <string name="desktop_activity">النشاط</string>
@@ -427,7 +424,6 @@
     <string name="desktop_copy_address">نسخ العنوان</string>
     <string name="desktop_copy_text">نسخ النص</string>
     <string name="desktop_copied">تم النسخ</string>
-    <string name="desktop_also_wifi">أو على شبكة البيت: %1$s</string>
     <string name="desktop_clips_title">نصوص وروابط</string>
     <string name="desktop_clips_body">اكتب أو الصق، ويظهر فوراً في الكمبيوتر. والعكس.</string>
     <string name="desktop_clips_hint">نص، رابط، رقم، أي شي…</string>
@@ -435,4 +431,16 @@
     <string name="desktop_clips_send">إرسال</string>
     <string name="desktop_clip_from_phone">من الجوال</string>
     <string name="desktop_clip_from_computer">من الكمبيوتر</string>
+    <string name="desktop_tab_same_wifi">نفس الواي فاي</string>
+    <string name="desktop_tab_kaff">شبكة كفّ · أسرع</string>
+    <string name="desktop_step_same_wifi">خلّ الكمبيوتر على نفس الواي فاي اللي عليه الجوال</string>
+    <string name="desktop_same_wifi_tip">السرعة هنا حسب الراوتر. تبي أسرع شي؟ اختر «شبكة كفّ».</string>
+    <string name="desktop_hotspot_healing">نرجّع الشبكة… الكمبيوتر بيرجع يتصل لحاله</string>
+    <string name="desktop_connected_kaff">%1$s · عبر شبكة كفّ</string>
+    <string name="desktop_connected_wifi">%1$s · عبر الواي فاي</string>
+    <string name="desktop_via_kaff">عبر شبكة كفّ ⚡</string>
+    <string name="desktop_via_wifi">عبر نفس الواي فاي</string>
+    <string name="desktop_files_pick">اختر وأرسل للكمبيوتر</string>
+    <string name="desktop_files_on_computer">ظاهرة الحين في الكمبيوتر</string>
+    <string name="desktop_files_waiting">بتظهر أول ما يتصل الكمبيوتر</string>
 </resources>

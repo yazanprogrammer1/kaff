@@ -98,7 +98,7 @@ import dev.kaff.app.ui.theme.KaffShapes
 import dev.kaff.app.ui.theme.KaffTheme
 
 @Composable
-fun DesktopRoute(onBack: () -> Unit, viewModel: DesktopViewModel = hiltViewModel()) {
+fun DesktopRoute(onBack: () -> Unit, onPickFiles: () -> Unit, viewModel: DesktopViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val pick = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
@@ -126,6 +126,7 @@ fun DesktopRoute(onBack: () -> Unit, viewModel: DesktopViewModel = hiltViewModel
         onStartHotspot = viewModel::startHotspot,
         onStopHotspot = viewModel::stopHotspot,
         onOpen = { activity -> activity.saved?.let { openFile(context, it) } },
+        onPickFiles = onPickFiles,
         onCopy = { text ->
             context.getSystemService(ClipboardManager::class.java)?.setPrimaryClip(ClipData.newPlainText("Kaff", text))
             // Android 13+ shows its own "copied" confirmation.
@@ -163,6 +164,7 @@ fun DesktopScreen(
     onSendClip: (String) -> Unit = {},
     onPaste: () -> String? = { null },
     onOpenLink: (String) -> Unit = {},
+    onPickFiles: () -> Unit = onAddFiles,
 ) {
     val c = KaffTheme.colors
     val desktop = state.desktop
@@ -183,11 +185,11 @@ fun DesktopScreen(
                 }
             }
 
-            AddressCard(desktop, onStartHotspot, onStopHotspot, onCopy)
-
             if (desktop.approved.isNotEmpty()) Computers(desktop.approved)
 
-            FilesCard(state.items, onAddFiles, onClearFiles)
+            NetworkCard(desktop, onStartHotspot, onStopHotspot, onCopy)
+
+            FilesCard(state.items, connected = desktop.approved.isNotEmpty(), onPickFiles, onAddFiles, onClearFiles)
 
             ClipsCard(desktop.clips, onSendClip, onPaste, onCopy, onOpenLink)
 
@@ -203,94 +205,152 @@ fun DesktopScreen(
     }
 }
 
+private enum class NetTab { SameWifi, Kaff }
+
+/**
+ * Picks the way in for the computer. With the phone on Wi-Fi, "same Wi-Fi" is the default: nothing
+ * to switch on the computer. Kaff's network is always up next to it for speed or when there is no
+ * Wi-Fi at all.
+ */
 @Composable
-private fun AddressCard(desktop: DesktopState, onStartHotspot: () -> Unit, onStopHotspot: () -> Unit, onCopy: (String) -> Unit) {
-    val c = KaffTheme.colors
-    val hotspot = desktop.hotspot
-    if (hotspot != null) HotspotCard(hotspot, onStopHotspot, onCopy)
-    KaffCard(highlighted = hotspot == null, modifier = Modifier.animateContentSize()) {
-        val url = desktop.url
-        if (url == null) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                IconBadge(KaffIcons.Wifi)
-                Column(Modifier.weight(1f)) {
-                    Text(stringResource(R.string.desktop_no_network), style = MaterialTheme.typography.titleMedium, color = c.text)
-                    Text(stringResource(R.string.desktop_no_network_body), style = MaterialTheme.typography.bodyMedium, color = c.textMuted)
+private fun NetworkCard(desktop: DesktopState, onStartHotspot: () -> Unit, onStopHotspot: () -> Unit, onCopy: (String) -> Unit) {
+    var chosen by rememberSaveable { mutableStateOf<NetTab?>(null) }
+    val tab = chosen ?: if (desktop.onWifi) NetTab.SameWifi else NetTab.Kaff
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.animateContentSize()) {
+        if (desktop.onWifi) NetworkTabs(tab) { chosen = it }
+        when (tab) {
+            NetTab.SameWifi -> KaffCard(highlighted = true) {
+                Step(1, stringResource(R.string.desktop_step_same_wifi))
+                val url = desktop.wifiUrl
+                if (url != null) AddressBlock(url, 2, onCopy)
+                Step(3, stringResource(R.string.desktop_step_allow))
+                Text(stringResource(R.string.desktop_same_wifi_tip), style = MaterialTheme.typography.bodySmall, color = KaffTheme.colors.textMuted)
+            }
+            NetTab.Kaff -> {
+                val hotspot = desktop.hotspot
+                if (hotspot != null) HotspotCard(hotspot, desktop.hotspotHealing, onStopHotspot, onCopy)
+                KaffCard(highlighted = hotspot == null) {
+                    val url = desktop.kaffUrl
+                    when {
+                        url != null -> {
+                            AddressBlock(url, 2, onCopy)
+                            Step(3, stringResource(R.string.desktop_step_allow))
+                        }
+                        desktop.hotspotStarting || desktop.hotspotHealing ->
+                            StatusPill(stringResource(R.string.desktop_hotspot_starting), tone = PillTone.Neutral, glowingDot = true)
+                        else -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            SecondaryButton(stringResource(R.string.desktop_hotspot_start), onStartHotspot, height = 46.dp)
+                            Text(
+                                stringResource(if (desktop.hotspotFailed) R.string.desktop_hotspot_failed else R.string.desktop_hotspot_hint),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (desktop.hotspotFailed) KaffTheme.colors.danger else KaffTheme.colors.textMuted,
+                            )
+                        }
+                    }
                 }
             }
-        } else {
-            val display = url.removePrefix("http://").removeSuffix("/")
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.weight(1f)) { Step(if (hotspot != null) 2 else 1, stringResource(R.string.desktop_step_open)) }
-                CopyButton(stringResource(R.string.desktop_copy_address)) { onCopy(display) }
-            }
-            // The address is typed by hand: one unbroken line, monospaced, always left-to-right.
-            BasicText(
-                display,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(KaffShapes.medium)
-                    .background(c.primary.copy(alpha = 0.1f))
-                    .padding(horizontal = 10.dp, vertical = 12.dp),
-                style = MaterialTheme.typography.headlineSmall.copy(
-                    color = c.primarySoft,
-                    fontFamily = FontFamily.Monospace,
-                    textDirection = TextDirection.Ltr,
-                    textAlign = TextAlign.Center,
-                ),
-                maxLines = 1,
-                softWrap = false,
-                autoSize = TextAutoSize.StepBased(minFontSize = 9.sp, maxFontSize = 26.sp, stepSize = 0.5.sp),
-            )
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                Text(
-                    stringResource(R.string.desktop_step_open_hint),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = c.textMuted,
-                    modifier = Modifier.weight(1f),
-                )
-                QrCode(url, stringResource(R.string.desktop_qr_address), size = 104.dp)
-            }
-            desktop.wifiUrl?.let { other ->
-                Text(
-                    stringResource(R.string.desktop_also_wifi, other.removePrefix("http://").removeSuffix("/")),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = c.textMuted,
-                )
-            }
-            Step(if (hotspot != null) 3 else 2, stringResource(R.string.desktop_step_allow))
         }
-        when {
-            desktop.hotspotStarting -> StatusPill(stringResource(R.string.desktop_hotspot_starting), tone = PillTone.Neutral, glowingDot = true)
-            hotspot != null -> Unit
-            else -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                SecondaryButton(stringResource(R.string.desktop_hotspot_start), onStartHotspot, height = 46.dp)
-                Text(
-                    stringResource(if (desktop.hotspotFailed) R.string.desktop_hotspot_failed else R.string.desktop_hotspot_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (desktop.hotspotFailed) c.danger else c.textMuted,
+    }
+}
+
+@Composable
+private fun NetworkTabs(selected: NetTab, onSelect: (NetTab) -> Unit) {
+    val c = KaffTheme.colors
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(KaffShapes.large)
+            .background(c.surface)
+            .border(1.dp, c.border, KaffShapes.large)
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        listOf(
+            NetTab.SameWifi to (KaffIcons.Wifi to stringResource(R.string.desktop_tab_same_wifi)),
+            NetTab.Kaff to (KaffIcons.Bolt to stringResource(R.string.desktop_tab_kaff)),
+        ).forEach { (tab, look) ->
+            val on = tab == selected
+            Row(
+                Modifier
+                    .weight(1f)
+                    .heightIn(min = 48.dp)
+                    .clip(KaffShapes.medium)
+                    .background(if (on) c.primary else androidx.compose.ui.graphics.Color.Transparent)
+                    .clickable(role = Role.Tab) { onSelect(tab) }
+                    .padding(horizontal = 8.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(look.first, contentDescription = null, tint = if (on) c.onPrimary else c.primary, modifier = Modifier.size(18.dp))
+                BasicText(
+                    look.second,
+                    style = MaterialTheme.typography.titleSmall.copy(color = if (on) c.onPrimary else c.textSubtle),
+                    maxLines = 1,
+                    autoSize = TextAutoSize.StepBased(minFontSize = 11.sp, maxFontSize = MaterialTheme.typography.titleSmall.fontSize),
                 )
             }
         }
     }
 }
 
+/** Step [number]: the address to type, a copy button and its QR code. */
+@Composable
+private fun AddressBlock(url: String, number: Int, onCopy: (String) -> Unit) {
+    val c = KaffTheme.colors
+    val display = url.removePrefix("http://").removeSuffix("/")
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.weight(1f)) { Step(number, stringResource(R.string.desktop_step_open)) }
+        CopyButton(stringResource(R.string.desktop_copy_address)) { onCopy(display) }
+    }
+    // The address is typed by hand: one unbroken line, monospaced, always left-to-right.
+    BasicText(
+        display,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(KaffShapes.medium)
+            .background(c.primary.copy(alpha = 0.1f))
+            .padding(horizontal = 10.dp, vertical = 12.dp),
+        style = MaterialTheme.typography.headlineSmall.copy(
+            color = c.primarySoft,
+            fontFamily = FontFamily.Monospace,
+            textDirection = TextDirection.Ltr,
+            textAlign = TextAlign.Center,
+        ),
+        maxLines = 1,
+        softWrap = false,
+        autoSize = TextAutoSize.StepBased(minFontSize = 9.sp, maxFontSize = 26.sp, stepSize = 0.5.sp),
+    )
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+        Text(
+            stringResource(R.string.desktop_step_open_hint),
+            style = MaterialTheme.typography.bodyMedium,
+            color = c.textMuted,
+            modifier = Modifier.weight(1f),
+        )
+        QrCode(url, stringResource(R.string.desktop_qr_address), size = 104.dp)
+    }
+}
+
 /** Kaff's own network: the fastest path, with the name and password big enough to read across a desk. */
 @Composable
-private fun HotspotCard(hotspot: HotspotInfo, onStop: () -> Unit, onCopy: (String) -> Unit) {
+private fun HotspotCard(hotspot: HotspotInfo, healing: Boolean, onStop: () -> Unit, onCopy: (String) -> Unit) {
     val c = KaffTheme.colors
     KaffCard(highlighted = true) {
         Step(1, stringResource(R.string.desktop_step_join))
-        StatusPill(
-            stringResource(
-                when (hotspot.band) {
-                    HotspotBand.Ghz5 -> R.string.desktop_hotspot_fast_5
-                    HotspotBand.Ghz24 -> R.string.desktop_hotspot_fast_24
-                    null -> R.string.desktop_hotspot_fast
-                },
-            ),
-            icon = KaffIcons.Bolt,
-        )
+        if (healing) {
+            StatusPill(stringResource(R.string.desktop_hotspot_healing), tone = PillTone.Neutral, glowingDot = true)
+        } else {
+            StatusPill(
+                stringResource(
+                    when (hotspot.band) {
+                        HotspotBand.Ghz5 -> R.string.desktop_hotspot_fast_5
+                        HotspotBand.Ghz24 -> R.string.desktop_hotspot_fast_24
+                        null -> R.string.desktop_hotspot_fast
+                    },
+                ),
+                icon = KaffIcons.Bolt,
+            )
+        }
         Credential(stringResource(R.string.desktop_hotspot_name), hotspot.ssid, stringResource(R.string.desktop_copy_name)) { onCopy(hotspot.ssid) }
         Credential(stringResource(R.string.desktop_hotspot_password), hotspot.passphrase, stringResource(R.string.desktop_copy_password)) { onCopy(hotspot.passphrase) }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -469,16 +529,17 @@ private const val MAX_CLIP_CHARS = 20_000
 private fun Computers(clients: List<DesktopClient>) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         clients.forEach { client ->
+            val name = listOf(client.browser, client.os).filter { it.isNotBlank() }.joinToString(" · ")
             StatusPill(
-                stringResource(R.string.desktop_connected, listOf(client.browser, client.os).filter { it.isNotBlank() }.joinToString(" · ")),
-                icon = KaffIcons.Desktop,
+                stringResource(if (client.viaKaff) R.string.desktop_connected_kaff else R.string.desktop_connected_wifi, name),
+                icon = if (client.viaKaff) KaffIcons.Bolt else KaffIcons.Wifi,
             )
         }
     }
 }
 
 @Composable
-private fun FilesCard(items: List<PickItem>, onAddFiles: () -> Unit, onClearFiles: () -> Unit) {
+private fun FilesCard(items: List<PickItem>, connected: Boolean, onPickFiles: () -> Unit, onAddFiles: () -> Unit, onClearFiles: () -> Unit) {
     val c = KaffTheme.colors
     KaffCard {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -494,14 +555,19 @@ private fun FilesCard(items: List<PickItem>, onAddFiles: () -> Unit, onClearFile
                     color = c.text,
                 )
                 Text(
-                    if (items.isEmpty()) stringResource(R.string.desktop_files_empty_body) else fileSizeText(items.sumOf { it.size }),
+                    when {
+                        items.isEmpty() -> stringResource(R.string.desktop_files_empty_body)
+                        connected -> fileSizeText(items.sumOf { it.size }) + " · " + stringResource(R.string.desktop_files_on_computer)
+                        else -> fileSizeText(items.sumOf { it.size }) + " · " + stringResource(R.string.desktop_files_waiting)
+                    },
                     style = MaterialTheme.typography.bodyMedium,
-                    color = c.textMuted,
+                    color = if (items.isNotEmpty() && connected) c.primarySoft else c.textMuted,
                 )
             }
         }
+        PrimaryButton(stringResource(R.string.desktop_files_pick), onPickFiles, height = 52.dp, trailingIcon = KaffIcons.Upload)
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            SecondaryButton(stringResource(R.string.desktop_files_add), onAddFiles, Modifier.weight(1f), height = 46.dp)
+            SecondaryButton(stringResource(R.string.desktop_files_add), onAddFiles, Modifier.weight(1f), accent = false, height = 46.dp)
             if (items.isNotEmpty()) SecondaryButton(stringResource(R.string.desktop_files_clear), onClearFiles, Modifier.weight(1f), accent = false, height = 46.dp)
         }
     }
@@ -596,6 +662,11 @@ private fun ApprovalDialog(client: DesktopClient, onAllow: () -> Unit, onDeny: (
                 val name = listOf(client.browser, client.os).filter { it.isNotBlank() }.joinToString(" · ")
                 Text(name, style = MaterialTheme.typography.titleMedium, color = c.text)
                 Text(client.address, style = MaterialTheme.typography.bodyMedium.copy(textDirection = TextDirection.Ltr), color = c.textMuted)
+                Text(
+                    stringResource(if (client.viaKaff) R.string.desktop_via_kaff else R.string.desktop_via_wifi),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = c.primarySoft,
+                )
                 Spacer(Modifier.size(8.dp))
                 Text(stringResource(R.string.desktop_approve_body), style = MaterialTheme.typography.bodyMedium, color = c.textMuted, textAlign = TextAlign.Center)
             }

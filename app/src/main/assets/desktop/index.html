@@ -109,6 +109,20 @@ header { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
 .clip svg.src { width: 18px; height: 18px; color: var(--primary); flex: none; }
 .icon-btn { flex: none; width: 40px; height: 40px; border-radius: 12px; border: 0; display: grid; place-items: center; background: color-mix(in srgb, var(--primary) 14%, transparent); color: var(--primary); }
 .icon-btn svg { width: 19px; height: 19px; }
+.fast { margin-bottom: 20px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 16%, var(--surface)), var(--surface)); border-color: color-mix(in srgb, var(--primary) 35%, transparent); }
+.fast .bolt { width: 46px; height: 46px; border-radius: 14px; background: var(--primary); display: grid; place-items: center; flex: none; }
+.fast .bolt svg { width: 24px; height: 24px; color: var(--on-primary); }
+.fast .info { flex: 1; min-width: 220px; }
+.fast b { font-size: 17px; }
+.fast p { margin: 3px 0 0; color: var(--muted); font-size: 14px; }
+.cred { display: inline-flex; align-items: center; gap: 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 14px; padding: 6px 6px 6px 14px; margin: 4px; }
+[dir="rtl"] .cred { padding: 6px 14px 6px 6px; }
+.cred small { color: var(--muted); font-size: 12px; display: block; }
+.cred code { font: 600 17px ui-monospace, Consolas, monospace; direction: ltr; unicode-bidi: isolate; }
+.switch { display: inline-flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--muted); cursor: pointer; user-select: none; margin-top: 4px; }
+.switch input { accent-color: var(--primary); width: 16px; height: 16px; }
+.file.fresh { box-shadow: 0 0 0 2px var(--primary), 0 12px 30px -12px var(--primary); }
 .hidden { display: none !important; }
 @keyframes rise { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
 @keyframes ring { from { transform: scale(1); opacity: .7; } to { transform: scale(1.7); opacity: 0; } }
@@ -127,6 +141,7 @@ header { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
   <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
   <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol>
   <symbol id="i-desk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4" width="19" height="12.5" rx="2.5"/><path d="M8.5 20.5h7M12 16.5v4"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></symbol>
   <symbol id="i-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></symbol>
 </svg>
 
@@ -164,12 +179,21 @@ header { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
   </section>
 
   <section id="v-main" class="hidden">
+    <div class="card fast hidden" id="fast">
+      <div class="bolt"><svg><use href="#i-bolt"/></svg></div>
+      <div class="info"><b data-t="fastTitle"></b><p data-t="fastBody"></p></div>
+      <div>
+        <span class="cred"><span><small data-t="network"></small><code id="fast-ssid"></code></span><button class="icon-btn" id="copy-ssid"><svg><use href="#i-copy"/></svg></button></span>
+        <span class="cred"><span><small data-t="password"></small><code id="fast-pass"></code></span><button class="icon-btn" id="copy-pass"><svg><use href="#i-copy"/></svg></button></span>
+      </div>
+    </div>
     <div class="grid">
       <div class="card">
         <div class="row" style="align-items:flex-start">
           <div style="flex:1">
             <h2 data-t="fromPhone"></h2>
             <p class="sub" id="from-sub"></p>
+            <label class="switch"><input type="checkbox" id="auto"><span data-t="autoDl"></span></label>
           </div>
           <a class="btn primary" id="zip" href="zip" download><svg width="18" height="18"><use href="#i-down"/></svg><span data-t="downloadAll"></span></a>
         </div>
@@ -217,6 +241,10 @@ header { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
     count: n => n === 1 ? "ملف واحد" : n === 2 ? "ملفان" : n <= 10 ? n + " ملفات" : n + " ملف",
     sending: "يرسل…", sent: "وصل للجوال ✓", failed: "ما وصل · تأكد من المساحة", queued: "في الانتظار",
     allSent: n => "وصلت " + T.count(n) + " إلى الجوال", units: ["بايت", "ك.ب", "م.ب", "ج.ب"], speed: "/ث",
+    fastTitle: "تبي سرعة أعلى بكثير؟", fastBody: "اتصل من الكمبيوتر بشبكة كفّ المباشرة (بدون راوتر). الصفحة بتلحقك لحالها.",
+    network: "اسم الشبكة", password: "كلمة السر", autoDl: "تنزيل تلقائي للملفات الجديدة",
+    newFiles: n => n === 1 ? "وصل ملف جديد من الجوال" : "وصلت " + T.count(n) + " جديدة من الجوال",
+    moved: "انتقلنا لشبكة أسرع ✓",
     clipsTitle: "نصوص وروابط", clipsSub: "اكتب أو الصق (Ctrl+V) واضغط Enter، ويوصل الجوال فوراً. واللي يرسله الجوال يطلع هنا.",
     clipHint: "نص، رابط، رقم، أي شي…", send: "إرسال", copied: "تم النسخ", fromPhone: "من الجوال", fromPc: "من هذا الكمبيوتر", copy: "نسخ",
   } : {
@@ -231,6 +259,10 @@ header { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
     count: n => n === 1 ? "1 file" : n + " files",
     sending: "Sending…", sent: "On the phone ✓", failed: "Failed · check storage", queued: "Queued",
     allSent: n => T.count(n) + " sent to the phone", units: ["B", "KB", "MB", "GB"], speed: "/s",
+    fastTitle: "Want it much faster?", fastBody: "Join Kaff's direct network on this computer (no router in between). This page follows you there.",
+    network: "Network", password: "Password", autoDl: "Download new files automatically",
+    newFiles: n => n === 1 ? "A new file arrived from the phone" : n + " new files from the phone",
+    moved: "Switched to a faster network ✓",
     clipsTitle: "Text & links", clipsSub: "Type or paste (Ctrl+V) and press Enter: it lands on the phone right away. What the phone sends shows up here.",
     clipHint: "Text, a link, a number, anything…", send: "Send", copied: "Copied", fromPhone: "From the phone", fromPc: "From this computer", copy: "Copy",
   };
@@ -248,18 +280,41 @@ header { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
   const icon = mime => mime.startsWith("video/") ? "i-video" : mime.startsWith("audio/") ? "i-music" : mime === "application/vnd.android.package-archive" ? "i-app" : "i-file";
   const esc = s => s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-  let approved = false, lastFiles = "";
+  let approved = false, lastFiles = "", started = false, fails = 0;
+  let key = (location.hash.match(/k=([0-9a-f]{32})/) || [])[1] || null;
+  let alternates = [];
+  const moved = /moved=1/.test(location.hash);
+  if (location.hash) history.replaceState(null, "", location.pathname);
+  const H = () => key ? { "X-Kaff-Key": key } : {};
+  const K = () => key ? "?k=" + key : "";
+  let autoDl = false;
+  try { autoDl = localStorage.getItem("kaff-auto") === "1"; } catch (e) { }
 
   async function hello() {
     show("wait");
     while (!approved) {
       try {
-        const r = await fetch("api/hello", { cache: "no-store" });
+        const r = await fetch("api/hello", { cache: "no-store", headers: H() });
         const j = await r.json();
-        if (j.approved) { approved = true; connected(j.device); return; }
+        if (j.approved) {
+          approved = true;
+          key = j.key || key;
+          alternates = j.alternates || [];
+          fast(j.fast);
+          connected(j.device);
+          if (moved) toast(T.moved);
+          return;
+        }
         show("denied"); return;
       } catch (e) { show("lost"); await new Promise(r => setTimeout(r, 2500)); }
     }
+  }
+
+  function fast(net) {
+    $("fast").classList.toggle("hidden", !net);
+    if (!net) return;
+    $("fast-ssid").textContent = net.ssid;
+    $("fast-pass").textContent = net.pass;
   }
 
   function connected(device) {
@@ -267,9 +322,30 @@ header { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
     $("link-text").textContent = T.connected(device);
     show("main");
     refresh();
-    setInterval(refresh, 3000);
     pollClips();
+    if (started) return;
+    started = true;
+    setInterval(refresh, 2000);
     setInterval(pollClips, 1500);
+  }
+
+  // The computer switched networks (home Wi-Fi <-> Kaff network): find the phone on its other address.
+  let searching = false;
+  async function findPhone() {
+    if (searching || !key) return;
+    searching = true;
+    try {
+      for (const alt of alternates) {
+        if (location.href.startsWith(alt)) continue;
+        const ctl = new AbortController();
+        const timer = setTimeout(() => ctl.abort(), 2500);
+        try {
+          await fetch(alt + "api/ping", { mode: "no-cors", cache: "no-store", signal: ctl.signal });
+          location.href = alt + "#k=" + key + "&moved=1";
+          return;
+        } catch (e) { } finally { clearTimeout(timer); }
+      }
+    } finally { searching = false; }
   }
 
   // Text and links, both ways. navigator.clipboard needs HTTPS, so copying falls back to execCommand.
@@ -286,7 +362,7 @@ header { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
   async function pollClips() {
     if (!approved) return;
     try {
-      const r = await fetch("api/clips?since=" + lastClip, { cache: "no-store" });
+      const r = await fetch("api/clips?since=" + lastClip, { cache: "no-store", headers: H() });
       if (!r.ok) return;
       const j = await r.json();
       for (const clip of j.clips) {
@@ -315,38 +391,58 @@ header { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
     if (!text) return;
     $("clip-send").disabled = true;
     try {
-      const r = await fetch("api/clip", { method: "POST", body: text, headers: { "Content-Type": "text/plain;charset=utf-8" } });
+      const r = await fetch("api/clip", { method: "POST", body: text, headers: { "Content-Type": "text/plain;charset=utf-8", ...H() } });
       if (r.ok) { box.value = ""; pollClips(); }
     } finally { $("clip-send").disabled = false; box.focus(); }
   }
 
   async function refresh() {
     try {
-      const r = await fetch("api/files", { cache: "no-store" });
+      const r = await fetch("api/files", { cache: "no-store", headers: H() });
       if (r.status === 403) { approved = false; return hello(); }
       const j = await r.json();
+      fails = 0;
       if (!$("v-lost").classList.contains("hidden")) show("main");
-      const key = JSON.stringify(j.files);
-      if (key === lastFiles) return;
-      lastFiles = key;
+      const sig = JSON.stringify(j.files);
+      if (sig === lastFiles) return;
+      lastFiles = sig;
       render(j.files);
-    } catch (e) { show("lost"); }
+    } catch (e) {
+      if (++fails >= 2) { show("lost"); findPhone(); }
+    }
   }
 
+  const seen = new Set();
+  let firstRender = true;
   function render(files) {
+    // Files the phone added since the last look: highlighted, announced, optionally downloaded.
+    const fresh = files.filter(f => !seen.has(f.id + "|" + f.name + "|" + f.size));
+    files.forEach(f => seen.add(f.id + "|" + f.name + "|" + f.size));
+    if (!firstRender && fresh.length) {
+      toast(T.newFiles(fresh.length));
+      if (autoDl) fresh.forEach((f, i) => setTimeout(() => download(f), i * 400));
+    }
+    const freshIds = firstRender ? new Set() : new Set(fresh.map(f => f.id));
+    firstRender = false;
     const total = files.reduce((s, f) => s + f.size, 0);
     $("from-sub").textContent = files.length ? T.count(files.length) + " · " + size(total) : "";
     $("zip").classList.toggle("hidden", files.length < 2);
+    $("zip").href = "zip" + K();
     $("no-files").classList.toggle("hidden", files.length > 0);
     $("files").innerHTML = files.map((f, i) => {
       const visual = /^(image|video)\//.test(f.mime)
-        ? `<img loading="lazy" alt="" src="api/thumb/${f.id}" onerror="this.outerHTML='<svg><use href=&quot;#${icon(f.mime)}&quot;/></svg>'">`
+        ? `<img loading="lazy" alt="" src="api/thumb/${f.id}${K()}" onerror="this.outerHTML='<svg><use href=&quot;#${icon(f.mime)}&quot;/></svg>'">`
         : `<svg><use href="#${icon(f.mime)}"/></svg>`;
-      return `<a class="file" href="file/${f.id}" download style="animation-delay:${Math.min(i, 12) * 35}ms">
+      return `<a class="file${freshIds.has(f.id) ? " fresh" : ""}" href="file/${f.id}${K()}" download style="animation-delay:${Math.min(i, 12) * 35}ms">
         <div class="thumb">${visual}</div>
         <span class="get"><svg><use href="#i-down"/></svg></span>
         <div class="meta"><div class="name" title="${esc(f.name)}">${esc(f.name)}</div><div class="size">${size(f.size)}</div></div></a>`;
     }).join("");
+  }
+
+  function download(f) {
+    const a = Object.assign(document.createElement("a"), { href: "file/" + f.id + K(), download: f.name });
+    document.body.appendChild(a); a.click(); a.remove();
   }
 
   // Uploads: two at a time, each with live progress and speed.
@@ -375,6 +471,7 @@ header { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
       const state = el.querySelector(".state"), bar = el.querySelector(".bar i");
       const start = performance.now();
       xhr.open("PUT", "upload?name=" + encodeURIComponent(file.name) + "&type=" + encodeURIComponent(file.type || ""));
+      if (key) xhr.setRequestHeader("X-Kaff-Key", key);
       xhr.upload.onprogress = e => {
         if (!e.lengthComputable) return;
         const secs = (performance.now() - start) / 1000;
@@ -401,6 +498,10 @@ header { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
   ["dragleave", "drop"].forEach(t => document.addEventListener(t, e => { e.preventDefault(); if (t === "drop" || e.target === document.documentElement) drop.classList.remove("over"); }));
   document.addEventListener("drop", e => { if (approved && e.dataTransfer.files.length) enqueue(e.dataTransfer.files); });
   $("retry").addEventListener("click", hello);
+  $("auto").checked = autoDl;
+  $("auto").addEventListener("change", e => { autoDl = e.target.checked; try { localStorage.setItem("kaff-auto", autoDl ? "1" : "0"); } catch (x) { } });
+  $("copy-ssid").addEventListener("click", () => copyText($("fast-ssid").textContent));
+  $("copy-pass").addEventListener("click", () => copyText($("fast-pass").textContent));
   $("clip-text").placeholder = T.clipHint;
   $("clip-send").addEventListener("click", sendClip);
   $("clip-text").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendClip(); } });

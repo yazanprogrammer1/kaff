@@ -335,8 +335,6 @@
     <string name="desktop_step_open">Open this address in the computer\'s browser</string>
     <string name="desktop_step_open_hint">Type it in the browser, or scan the code. The computer must be on the same network.</string>
     <string name="desktop_step_allow">Approve the request that appears here</string>
-    <string name="desktop_no_network">This phone isn\'t on Wi-Fi</string>
-    <string name="desktop_no_network_body">Start Kaff\'s own network and join it from the computer.</string>
     <string name="desktop_hotspot_start">Start Kaff network (offline)</string>
     <string name="desktop_hotspot_hint">If the computer is on another network, or there is no Wi-Fi at all.</string>
     <string name="desktop_hotspot_failed">Couldn\'t start the network. Turn on location and Wi-Fi, or turn off your hotspot, and try again.</string>
@@ -346,11 +344,10 @@
     <string name="desktop_hotspot_password">Password</string>
     <string name="desktop_qr_address">QR code for the address</string>
     <string name="desktop_qr_wifi">QR code to join the network</string>
-    <string name="desktop_connected">Connected: %1$s</string>
     <string name="desktop_files_empty">Nothing for the computer yet</string>
     <string name="desktop_files_empty_body">Add files the computer can download, or upload from the computer straight to this phone.</string>
     <string name="desktop_files_ready">%1$s ready for the computer</string>
-    <string name="desktop_files_add">Add files</string>
+    <string name="desktop_files_add">From the file manager</string>
     <string name="desktop_files_clear">Clear list</string>
     <string name="desktop_receiving">Receiving from the computer…</string>
     <string name="desktop_activity">Activity</string>
@@ -375,7 +372,6 @@
     <string name="desktop_copy_address">Copy address</string>
     <string name="desktop_copy_text">Copy text</string>
     <string name="desktop_copied">Copied</string>
-    <string name="desktop_also_wifi">Or on your home Wi-Fi: %1$s</string>
     <string name="desktop_clips_title">Text &amp; links</string>
     <string name="desktop_clips_body">Type or paste here and it shows up on the computer right away. And back.</string>
     <string name="desktop_clips_hint">Text, a link, a number, anything…</string>
@@ -383,4 +379,16 @@
     <string name="desktop_clips_send">Send</string>
     <string name="desktop_clip_from_phone">From the phone</string>
     <string name="desktop_clip_from_computer">From the computer</string>
+    <string name="desktop_tab_same_wifi">Same Wi-Fi</string>
+    <string name="desktop_tab_kaff">Kaff network · faster</string>
+    <string name="desktop_step_same_wifi">Keep the computer on the same Wi-Fi as the phone</string>
+    <string name="desktop_same_wifi_tip">Speed here depends on the router. Want the fastest? Pick “Kaff network”.</string>
+    <string name="desktop_hotspot_healing">Bringing the network back… the computer will reconnect by itself</string>
+    <string name="desktop_connected_kaff">%1$s · on Kaff network</string>
+    <string name="desktop_connected_wifi">%1$s · on Wi-Fi</string>
+    <string name="desktop_via_kaff">On Kaff network ⚡</string>
+    <string name="desktop_via_wifi">On the same Wi-Fi</string>
+    <string name="desktop_files_pick">Pick &amp; send to computer</string>
+    <string name="desktop_files_on_computer">showing on the computer now</string>
+    <string name="desktop_files_waiting">they appear once the computer connects</string>
 </resources>

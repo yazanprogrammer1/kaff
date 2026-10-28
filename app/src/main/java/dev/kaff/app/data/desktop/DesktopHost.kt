@@ -12,6 +12,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.util.Size
+import androidx.core.content.edit
 import androidx.core.net.toUri
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.kaff.app.R
@@ -44,7 +45,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.resume
 
 /** A computer browser that asked to connect. */
-data class DesktopClient(val address: String, val browser: String, val os: String)
+data class DesktopClient(val address: String, val browser: String, val os: String, val viaKaff: Boolean = false)
 
 /** One download or upload, newest first on the screen. */
 data class DesktopActivity(
@@ -69,12 +70,18 @@ data class DesktopState(
      * (direct, fastest), otherwise on the shared Wi-Fi. Null with no usable network.
      */
     val url: String? = null,
-    /** The same page on the shared Wi-Fi while [url] points at Kaff's network. */
+    /** The page on the shared Wi-Fi (phone and computer on the same network). */
     val wifiUrl: String? = null,
+    /** The page on Kaff's own network, once it is up. */
+    val kaffUrl: String? = null,
     val clips: List<DesktopServer.Clip> = emptyList(),
     val hotspot: HotspotInfo? = null,
     val hotspotStarting: Boolean = false,
     val hotspotFailed: Boolean = false,
+    /** Another app took our Wi-Fi Direct group down; it is being brought back with the same name. */
+    val hotspotHealing: Boolean = false,
+    /** The phone is on a Wi-Fi network a computer can share. */
+    val onWifi: Boolean = false,
     val approved: List<DesktopClient> = emptyList(),
     val pending: DesktopClient? = null,
     val activity: List<DesktopActivity> = emptyList(),
@@ -109,6 +116,10 @@ class DesktopHost @Inject constructor(
     private val clipIds = java.util.concurrent.atomic.AtomicLong()
     private var reservation: WifiManager.LocalOnlyHotspotReservation? = null
     @Volatile private var directGroup = false
+    @Volatile private var wantHotspot = false
+    @Volatile private var healing = false
+    @Volatile private var apAddress: String? = null
+    private var missedGroup = 0
     private var p2pChannel: WifiP2pManager.Channel? = null
     private val page by lazy { context.assets.open("desktop/index.html").use { it.readBytes() } }
 
@@ -149,10 +160,17 @@ class DesktopHost @Inject constructor(
     fun refreshAddress() {
         if (server == null) return
         val (station, ap) = localAddresses()
+        apAddress = ap
+        healGroup(groupUp = ap != null)
         val hotspotUp = _state.value.hotspot != null
-        val primary = if (hotspotUp) ap ?: station else station ?: ap
-        val secondary = if (hotspotUp && ap != null) station else null
-        _state.update { it.copy(url = primary?.let(::urlFor), wifiUrl = secondary?.let(::urlFor)) }
+        _state.update {
+            it.copy(
+                url = (if (hotspotUp) ap ?: station else station ?: ap)?.let(::urlFor),
+                wifiUrl = station?.let(::urlFor),
+                kaffUrl = ap?.takeIf { hotspotUp }?.let(::urlFor),
+                onWifi = station != null,
+            )
+        }
     }
 
     private fun urlFor(address: String) = "http://$address:$port/$token/"
@@ -191,6 +209,7 @@ class DesktopHost @Inject constructor(
      */
     fun startHotspot() {
         if (reservation != null || directGroup || _state.value.hotspotStarting || _state.value.hotspot != null) return
+        wantHotspot = true
         _state.update { it.copy(hotspotStarting = true, hotspotFailed = false) }
         scope.launch {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && startDirectGroup()) return@launch
@@ -203,11 +222,7 @@ class DesktopHost @Inject constructor(
     private suspend fun startDirectGroup(): Boolean {
         val manager = context.getSystemService(WifiP2pManager::class.java) ?: return false
         val channel = p2pChannel ?: manager.initialize(context, Looper.getMainLooper(), null).also { p2pChannel = it }
-        val info = HotspotInfo(
-            ssid = "DIRECT-KF-Kaff-" + newToken().take(4).uppercase(),
-            passphrase = newPassphrase(),
-            band = HotspotBand.Ghz5,
-        )
+        val info = savedNetwork()
         // OEM services can leave the P2P state machine busy (ColorOS answers BUSY): clear it and retry.
         for (band in listOf(WifiP2pConfig.GROUP_OWNER_BAND_5GHZ, WifiP2pConfig.GROUP_OWNER_BAND_AUTO)) {
             repeat(GROUP_ATTEMPTS) { attempt ->
@@ -313,6 +328,8 @@ class DesktopHost @Inject constructor(
     }
 
     fun stopHotspot() {
+        wantHotspot = false
+        missedGroup = 0
         reservation?.close()
         reservation = null
         if (directGroup) {
@@ -320,7 +337,50 @@ class DesktopHost @Inject constructor(
             val manager = context.getSystemService(WifiP2pManager::class.java)
             p2pChannel?.let { channel -> manager?.removeGroup(channel, null) }
         }
-        _state.update { it.copy(hotspot = null, hotspotStarting = false) }
+        _state.update { it.copy(hotspot = null, hotspotStarting = false, hotspotHealing = false) }
+    }
+
+    /**
+     * Brings the Wi-Fi Direct group back when something else removed it (measured on ColorOS:
+     * Microsoft's Link to Windows calls removeGroup ~45 s after a laptop joins). Same name and
+     * password, so Windows reconnects on its own.
+     */
+    @SuppressLint("NewApi") // directGroup is only ever set on Android 10+.
+    private fun healGroup(groupUp: Boolean) {
+        if (!wantHotspot || !directGroup || healing) return
+        if (groupUp) {
+            if (missedGroup > 0) _state.update { it.copy(hotspotHealing = false) }
+            missedGroup = 0
+            return
+        }
+        if (++missedGroup < MISSED_BEFORE_HEAL) return
+        healing = true
+        Log.i(TAG, "Kaff network disappeared; bringing it back")
+        _state.update { it.copy(hotspotHealing = true) }
+        scope.launch {
+            try {
+                directGroup = false
+                if (startDirectGroup()) {
+                    missedGroup = 0
+                    _state.update { it.copy(hotspotHealing = false) }
+                } else {
+                    directGroup = true
+                }
+            } finally {
+                healing = false
+            }
+        }
+    }
+
+    private fun savedNetwork(): HotspotInfo {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val ssid = prefs.getString(KEY_SSID, null) ?: ("DIRECT-KF-Kaff-" + newToken().take(4).uppercase())
+        val pass = prefs.getString(KEY_PASS, null) ?: newPassphrase()
+        prefs.edit {
+            putString(KEY_SSID, ssid)
+            putString(KEY_PASS, pass)
+        }
+        return HotspotInfo(ssid, pass, HotspotBand.Ghz5)
     }
 
     @Suppress("DEPRECATION") // WifiConfiguration is the only source before Android 11.
@@ -435,7 +495,7 @@ class DesktopHost @Inject constructor(
         override suspend fun request(client: String, agent: String, timeoutMs: Long): Boolean? {
             val decision = decisions.getOrPut(client) { CompletableDeferred() }
             val (browser, os) = describeAgent(agent)
-            _state.update { if (it.pending == null) it.copy(pending = DesktopClient(client, browser, os)) else it }
+            _state.update { if (it.pending == null) it.copy(pending = DesktopClient(client, browser, os, viaKaff(client))) else it }
             val result = withTimeoutOrNull(timeoutMs) { decision.await() }
             if (result != true) {
                 decisions.remove(client, decision)
@@ -466,9 +526,19 @@ class DesktopHost @Inject constructor(
         }
     }
 
+    /** True when [client] is on our own network (same /24 as the group or hotspot address). */
+    private fun viaKaff(client: String): Boolean {
+        val ap = apAddress ?: return false
+        return ap.substringBeforeLast('.') == client.substringBeforeLast('.')
+    }
+
     private inner class PageAssets : DesktopServer.Assets {
         override fun page(): ByteArray = page
         override val deviceName: String get() = device.name.value
+
+        override fun fasterNetwork(client: String): HotspotInfo? = _state.value.hotspot?.takeIf { !viaKaff(client) }
+
+        override fun alternates(): List<String> = listOfNotNull(_state.value.wifiUrl, _state.value.kaffUrl)
 
         override fun font(name: String): ByteArray? {
             val id = when (name) {
@@ -487,6 +557,12 @@ class DesktopHost @Inject constructor(
         private const val TOKEN_LENGTH = 5
         private const val PASSPHRASE_LENGTH = 10
         private const val GROUP_ATTEMPTS = 3
+
+        /** Address checks run every 3 s: two misses in a row means the group is really gone. */
+        private const val MISSED_BEFORE_HEAL = 2
+        private const val PREFS = "kaff_desktop"
+        private const val KEY_SSID = "network_name"
+        private const val KEY_PASS = "network_password"
         private const val MAX_CLIPS = 50
         private const val MAX_CLIP_CHARS = 20_000
 

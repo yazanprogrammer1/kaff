@@ -45,6 +45,9 @@ import kotlinx.serialization.Serializable
 @Serializable data object ShareDestination
 @Serializable data object DesktopDestination
 
+/** The basket picker opened from the desktop screen; "ready" returns there instead of sending. */
+@Serializable data object DesktopPickerDestination
+
 /** Explains and requests permissions, then continues to [target]. */
 @Serializable data class PermissionsDestination(val target: String)
 
@@ -164,7 +167,13 @@ fun KaffNavHost(launchTargets: Flow<LaunchTarget>) {
                         onToDesktop = { open(LaunchTarget.Desktop) },
                     )
                 }
-                composable<DesktopDestination> { DesktopRoute(onBack = { nav.backToHome() }) }
+                composable<DesktopDestination> {
+                    DesktopRoute(onBack = { nav.backToHome() }, onPickFiles = { nav.navigate(DesktopPickerDestination) { launchSingleTop = true } })
+                }
+                // The desktop screen stays underneath, so its server keeps running while picking.
+                composable<DesktopPickerDestination> {
+                    PickerRoute(onBack = { nav.popBackStack() }, onReady = { nav.popBackStack() })
+                }
                 composable<HistoryDestination> { HistoryRoute(onBack = nav::popBackStack) }
                 composable<LabDestination> { GestureLabRoute(onBack = nav::popBackStack) }
                 composable<SettingsDestination> { SettingsRoute(onBack = nav::popBackStack, onLab = { nav.navigate(LabDestination) }) }

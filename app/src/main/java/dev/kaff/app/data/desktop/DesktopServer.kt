@@ -21,6 +21,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -83,10 +84,20 @@ class DesktopServer(
         fun page(): ByteArray
         fun font(name: String): ByteArray?
         val deviceName: String
+
+        /** Kaff's own network, offered to computers that came in over a slower shared Wi-Fi. */
+        fun fasterNetwork(client: String): HotspotInfo? = null
+
+        /** Every address this page is served on (shared Wi-Fi, Kaff network), for a page that lost the phone. */
+        fun alternates(): List<String> = emptyList()
     }
 
     private val scope = CoroutineScope(parent.coroutineContext + SupervisorJob(parent.coroutineContext.job))
     private var server: ServerSocket? = null
+    private val sessionKeys: MutableSet<String> = java.util.concurrent.ConcurrentHashMap.newKeySet()
+    private val random = java.security.SecureRandom()
+
+    private fun newSessionKey(): String = ByteArray(16).also(random::nextBytes).joinToString("") { "%02x".format(it) }
 
     /** Binds to [preferredPort] (or any free port) on every interface and returns the port. */
     fun start(preferredPort: Int): Int {
@@ -194,8 +205,10 @@ class DesktopServer(
             rest.isEmpty() && request.method == "GET" -> respond(out, 200, "text/html; charset=utf-8", assets.page())
             rest.size == 2 && rest[0] == "font" -> assets.font(rest[1])?.let { respond(out, 200, "font/ttf", it, cache = true) }
                 ?: respond(out, 404, "text/plain", ByteArray(0))
+            // Unauthenticated reachability probe: a page that lost the phone looks for it on the other network.
+            rest == listOf("api", "ping") -> respond(out, 200, "text/plain", "kaff".toByteArray())
             rest == listOf("api", "hello") -> hello(request, client, out)
-            !gate.isApproved(client) -> respond(out, 403, "application/json", """{"error":"not_approved"}""".toByteArray())
+            !approved(request, client) -> respond(out, 403, "application/json", """{"error":"not_approved"}""".toByteArray())
             rest == listOf("api", "files") -> respond(out, 200, "application/json", filesJson().toByteArray())
             rest.size == 3 && rest[0] == "api" && rest[1] == "thumb" -> thumbnail(rest[2], out)
             rest.size == 2 && rest[0] == "file" -> download(rest[1], client, out)
@@ -207,13 +220,44 @@ class DesktopServer(
         }
     }
 
+    /**
+     * A browser is approved by its address, or by the session key it got at approval. The key lets
+     * the same tab carry on after the computer moves between the shared Wi-Fi and Kaff's network
+     * (its address changes) without asking on the phone again.
+     */
+    private fun approved(request: Request, client: String): Boolean {
+        if (gate.isApproved(client)) return true
+        val key = request.headers["x-kaff-key"] ?: request.query["k"] ?: return false
+        return sessionKeys.any { MessageDigest.isEqual(it.toByteArray(), key.toByteArray()) }
+    }
+
     private fun hello(request: Request, client: String, out: OutputStream) {
-        val approved = gate.isApproved(client) || runBlocking {
+        val approved = approved(request, client) || runBlocking {
             gate.request(client, request.headers["user-agent"].orEmpty(), HELLO_WAIT_MS)
         } == true
+        val key = if (approved) {
+            request.headers["x-kaff-key"]?.takeIf { it in sessionKeys } ?: newSessionKey().also { sessionKeys += it }
+        } else {
+            null
+        }
         val body = buildJsonObject {
             put("approved", approved)
             put("device", assets.deviceName)
+            if (key != null) {
+                put("key", key)
+                put("alternates", buildJsonArray { assets.alternates().forEach { add(JsonPrimitive(it)) } })
+            }
+            if (approved) {
+                assets.fasterNetwork(client)?.let { fast ->
+                    put(
+                        "fast",
+                        buildJsonObject {
+                            put("ssid", fast.ssid)
+                            put("pass", fast.passphrase)
+                        },
+                    )
+                }
+            }
         }
         respond(out, 200, "application/json", body.toString().toByteArray())
     }

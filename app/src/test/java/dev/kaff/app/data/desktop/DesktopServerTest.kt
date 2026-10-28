@@ -141,6 +141,17 @@ class DesktopServerTest {
     }
 
     @Test
+    fun sessionKeyFollowsTheBrowserAcrossAddresses() {
+        val hello = String(request("/abc23/api/hello").second)
+        val key = Regex("\"key\":\"([0-9a-f]{32})\"").find(hello)!!.groupValues[1]
+        approved.clear() // as if the computer came back on another network address
+        assertEquals(403, request("/abc23/api/files").first)
+        assertEquals(200, request("/abc23/api/files?k=$key").first)
+        assertEquals(403, request("/abc23/api/files?k=${"0".repeat(32)}").first)
+        assertEquals(200, request("/abc23/api/ping").first)
+    }
+
+    @Test
     fun clipsTravelBothWays() {
         assertEquals(403, request("/abc23/api/clips").first)
         request("/abc23/api/hello")
