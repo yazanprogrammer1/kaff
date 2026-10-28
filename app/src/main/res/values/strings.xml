@@ -418,4 +418,21 @@
         <item quantity="many">و%d غيرها</item>
         <item quantity="other">و%d غيرها</item>
     </plurals>
+    <string name="desktop_hotspot_fast_5">مباشر · 5GHz · أسرع شي</string>
+    <string name="desktop_hotspot_fast_24">مباشر · 2.4GHz</string>
+    <string name="desktop_hotspot_fast">مباشر · أسرع</string>
+    <string name="desktop_hotspot_qr_hint">من الكمبيوتر: افتح قائمة الواي فاي واختر الشبكة واكتب كلمة السر. من الجوال أو الآيباد: امسح الرمز.</string>
+    <string name="desktop_copy_name">نسخ اسم الشبكة</string>
+    <string name="desktop_copy_password">نسخ كلمة السر</string>
+    <string name="desktop_copy_address">نسخ العنوان</string>
+    <string name="desktop_copy_text">نسخ النص</string>
+    <string name="desktop_copied">تم النسخ</string>
+    <string name="desktop_also_wifi">أو على شبكة البيت: %1$s</string>
+    <string name="desktop_clips_title">نصوص وروابط</string>
+    <string name="desktop_clips_body">اكتب أو الصق، ويظهر فوراً في الكمبيوتر. والعكس.</string>
+    <string name="desktop_clips_hint">نص، رابط، رقم، أي شي…</string>
+    <string name="desktop_clips_paste">لصق</string>
+    <string name="desktop_clips_send">إرسال</string>
+    <string name="desktop_clip_from_phone">من الجوال</string>
+    <string name="desktop_clip_from_computer">من الكمبيوتر</string>
 </resources>

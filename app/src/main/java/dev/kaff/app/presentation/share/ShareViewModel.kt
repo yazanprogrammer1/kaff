@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.kaff.app.core.ShareInbox
+import dev.kaff.app.data.desktop.DesktopHost
 import dev.kaff.app.data.media.MediaLibrary
 import dev.kaff.app.domain.model.PickItem
 import dev.kaff.app.presentation.common.Basket
@@ -20,6 +21,7 @@ class ShareViewModel @Inject constructor(
     private val inbox: ShareInbox,
     private val library: MediaLibrary,
     private val basket: Basket,
+    private val desktop: DesktopHost,
 ) : ViewModel() {
 
     val state: StateFlow<ShareUiState> = inbox.uris
@@ -30,5 +32,16 @@ class ShareViewModel @Inject constructor(
     fun fillBasket() {
         basket.clear()
         basket.addAll(state.value.items)
+    }
+
+    /** Shared text reaches the computer as copyable text; files go in the basket. */
+    fun toDesktop() {
+        val text = inbox.text
+        if (text != null) {
+            basket.clear()
+            desktop.addClip(text)
+        } else {
+            fillBasket()
+        }
     }
 }

@@ -75,7 +75,7 @@ fun ShareRoute(
             onToPhone()
         },
         onToDesktop = {
-            viewModel.fillBasket()
+            viewModel.toDesktop()
             onToDesktop()
         },
     )

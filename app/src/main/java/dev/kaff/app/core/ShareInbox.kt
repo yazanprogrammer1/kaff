@@ -26,8 +26,14 @@ class ShareInbox @Inject constructor() {
     private val _uris = MutableStateFlow<List<Uri>>(emptyList())
     val uris: StateFlow<List<Uri>> = _uris.asStateFlow()
 
+    /** Shared text or link as sent; the desktop shows it as a clip instead of a .txt file. */
+    @Volatile var text: String? = null
+        private set
+
     /** Takes the items out of a SEND / SEND_MULTIPLE intent. Returns false if it carried nothing usable. */
     fun accept(context: Context, intent: Intent?): Boolean {
+        text = intent?.takeIf { it.action == Intent.ACTION_SEND && !it.hasExtra(Intent.EXTRA_STREAM) && it.clipData?.getItemAt(0)?.uri == null }
+            ?.getStringExtra(Intent.EXTRA_TEXT)?.takeIf { it.isNotBlank() }
         val uris = intent?.let { parse(context, it) }.orEmpty()
         if (uris.isEmpty()) return false
         _uris.value = uris
@@ -35,6 +41,7 @@ class ShareInbox @Inject constructor() {
     }
 
     fun clear() {
+        text = null
         _uris.value = emptyList()
     }
 

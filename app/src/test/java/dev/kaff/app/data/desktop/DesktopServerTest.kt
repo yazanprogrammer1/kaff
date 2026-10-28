@@ -27,6 +27,7 @@ class DesktopServerTest {
         "notes.txt" to "hello".toByteArray(),
     )
     private val uploaded = mutableMapOf<String, ByteArray>()
+    private val clipList = mutableListOf(DesktopServer.Clip(1, "https://kaff.dev", fromPhone = true, atMs = 0))
     private var approve: Boolean? = true
     private val approved = mutableSetOf<String>()
     private lateinit var server: DesktopServer
@@ -49,11 +50,17 @@ class DesktopServerTest {
                     return true
                 }
             },
+            clips = object : DesktopServer.Clips {
+                override fun since(id: Long) = clipList.filter { it.id > id }
+                override fun add(client: String, text: String) {
+                    clipList += DesktopServer.Clip(clipList.size + 1L, text, fromPhone = false, atMs = 0)
+                }
+            },
             gate = object : DesktopServer.Gate {
                 override fun isApproved(client: String) = client in approved
                 override suspend fun request(client: String, agent: String, timeoutMs: Long): Boolean? =
                     approve.also { if (it == true) approved += client }
-                override fun served(client: String, name: String, bytes: Long, upload: Boolean) = Unit
+                override fun served(client: String, name: String, bytes: Long, upload: Boolean, durationMs: Long) = Unit
             },
             assets = object : DesktopServer.Assets {
                 override fun page() = "<html>kaff</html>".toByteArray()
@@ -131,6 +138,17 @@ class DesktopServerTest {
         }
         assertEquals(files.map { it.first }.toSet(), entries.keys)
         assertArrayEquals(files[0].second, entries["صورة.jpg"])
+    }
+
+    @Test
+    fun clipsTravelBothWays() {
+        assertEquals(403, request("/abc23/api/clips").first)
+        request("/abc23/api/hello")
+        assertTrue(String(request("/abc23/api/clips").second).contains("https://kaff.dev"))
+        assertEquals(200, request("/abc23/api/clip", "POST", "مرحبا من اللابتوب".toByteArray()).first)
+        val newer = String(request("/abc23/api/clips?since=1").second)
+        assertTrue(newer.contains("مرحبا من اللابتوب") && !newer.contains("kaff.dev"))
+        assertEquals(413, request("/abc23/api/clip", "POST", ByteArray(70_000)).first)
     }
 
     @Test

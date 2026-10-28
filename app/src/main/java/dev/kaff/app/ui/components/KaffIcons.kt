@@ -72,6 +72,7 @@ object KaffIcons {
         "Apps", 1.8f,
         rect(4f, 4f, 7f, 7f, 2.5f), rect(13f, 4f, 7f, 7f, 2.5f), rect(4f, 13f, 7f, 7f, 2.5f), circle(16.5f, 16.5f, 3.5f),
     )
+    val Text = icon("Text", 1.8f, "M5 6h14M5 11h14M5 16h9")
     val Desktop = icon("Desktop", 1.8f, rect(2.5f, 4f, 19f, 12.5f, 2.5f), "M8.5 20.5h7M12 16.5v4")
     val Copy = icon("Copy", 1.8f, rect(8f, 8f, 12f, 12f, 2.5f), "M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2")
     val Upload = icon("Upload", 2f, "M12 16V5M7 10l5-5 5 5", "M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3")

@@ -366,4 +366,21 @@
         <item quantity="one">and %d more</item>
         <item quantity="other">and %d more</item>
     </plurals>
+    <string name="desktop_hotspot_fast_5">Direct · 5 GHz · fastest</string>
+    <string name="desktop_hotspot_fast_24">Direct · 2.4 GHz</string>
+    <string name="desktop_hotspot_fast">Direct · fastest</string>
+    <string name="desktop_hotspot_qr_hint">On the computer: open the Wi-Fi list, pick this network and type the password. On a phone or tablet: scan the code.</string>
+    <string name="desktop_copy_name">Copy network name</string>
+    <string name="desktop_copy_password">Copy password</string>
+    <string name="desktop_copy_address">Copy address</string>
+    <string name="desktop_copy_text">Copy text</string>
+    <string name="desktop_copied">Copied</string>
+    <string name="desktop_also_wifi">Or on your home Wi-Fi: %1$s</string>
+    <string name="desktop_clips_title">Text &amp; links</string>
+    <string name="desktop_clips_body">Type or paste here and it shows up on the computer right away. And back.</string>
+    <string name="desktop_clips_hint">Text, a link, a number, anything…</string>
+    <string name="desktop_clips_paste">Paste</string>
+    <string name="desktop_clips_send">Send</string>
+    <string name="desktop_clip_from_phone">From the phone</string>
+    <string name="desktop_clip_from_computer">From the computer</string>
 </resources>

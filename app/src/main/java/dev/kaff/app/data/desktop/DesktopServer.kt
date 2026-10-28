@@ -42,6 +42,7 @@ class DesktopServer(
     private val token: String,
     private val catalog: Catalog,
     private val uploads: Uploads,
+    private val clips: Clips,
     private val gate: Gate,
     private val assets: Assets,
     parent: CoroutineScope,
@@ -60,14 +61,22 @@ class DesktopServer(
         suspend fun save(client: String, name: String, mime: String?, size: Long, input: InputStream): Boolean
     }
 
+    /** Text and links passed between the phone and the computer, oldest first. */
+    interface Clips {
+        fun since(id: Long): List<Clip>
+        fun add(client: String, text: String)
+    }
+
+    data class Clip(val id: Long, val text: String, val fromPhone: Boolean, val atMs: Long)
+
     interface Gate {
         fun isApproved(client: String): Boolean
 
         /** Asks the phone's user; suspends until they answer or [timeoutMs] passes (null). */
         suspend fun request(client: String, agent: String, timeoutMs: Long): Boolean?
 
-        /** A download or upload finished, for the phone's activity list. */
-        fun served(client: String, name: String, bytes: Long, upload: Boolean)
+        /** A download or upload finished in [durationMs], for the phone's activity list and speed log. */
+        fun served(client: String, name: String, bytes: Long, upload: Boolean, durationMs: Long)
     }
 
     interface Assets {
@@ -125,7 +134,9 @@ class DesktopServer(
         socket.use {
             try {
                 it.soTimeout = READ_TIMEOUT_MS
-                val input = BufferedInputStream(it.getInputStream(), 16 * 1024)
+                it.sendBufferSize = SOCKET_BUFFER
+                it.receiveBufferSize = SOCKET_BUFFER
+                val input = BufferedInputStream(it.getInputStream(), BUFFER)
                 val out = BufferedOutputStream(it.getOutputStream(), 64 * 1024)
                 val request = parse(input) ?: return respond(out, 400, "text/plain", "Bad request".toByteArray())
                 val client = it.inetAddress.hostAddress ?: "?"
@@ -190,6 +201,8 @@ class DesktopServer(
             rest.size == 2 && rest[0] == "file" -> download(rest[1], client, out)
             rest == listOf("zip") -> zip(client, out)
             rest == listOf("upload") && (request.method == "PUT" || request.method == "POST") -> upload(request, client, out)
+            rest == listOf("api", "clips") && request.method == "GET" -> clipsJson(request.query["since"]?.toLongOrNull() ?: 0L, out)
+            rest == listOf("api", "clip") && request.method == "POST" -> addClip(request, client, out)
             else -> respond(out, 404, "text/plain", ByteArray(0))
         }
     }
@@ -232,17 +245,19 @@ class DesktopServer(
     private fun download(id: String, client: String, out: OutputStream) {
         val entry = catalog.files().firstOrNull { it.id.toString() == id } ?: return respond(out, 404, "text/plain", ByteArray(0))
         val input = catalog.open(entry.id) ?: return respond(out, 410, "text/plain", ByteArray(0))
+        val started = System.nanoTime()
         input.use {
             // Unknown sizes (some providers) are sent without a length; the connection end marks the body end.
             writeHead(out, 200, entry.mime, entry.size.takeIf { s -> s > 0 }, mapOf("Content-Disposition" to attachment(entry.name)))
             val sent = it.copyTo(out, BUFFER)
             out.flush()
-            gate.served(client, entry.name, sent, upload = false)
+            gate.served(client, entry.name, sent, upload = false, durationMs = elapsedMs(started))
         }
     }
 
     /** All files as one ZIP, streamed without compression (photos and videos are compressed already). */
     private fun zip(client: String, out: OutputStream) {
+        val started = System.nanoTime()
         val files = catalog.files()
         val name = "Kaff-${files.size}.zip"
         writeHead(out, 200, "application/zip", null, mapOf("Content-Disposition" to attachment(name)))
@@ -256,7 +271,7 @@ class DesktopServer(
                 zip.closeEntry()
             }
         }
-        gate.served(client, name, total, upload = false)
+        gate.served(client, name, total, upload = false, durationMs = elapsedMs(started))
     }
 
     private fun upload(request: Request, client: String, out: OutputStream) {
@@ -264,10 +279,42 @@ class DesktopServer(
         val size = request.headers["content-length"]?.toLongOrNull()
             ?: return respond(out, 411, "application/json", """{"error":"length_required"}""".toByteArray())
         val mime = request.query["type"]?.takeIf { it.isNotBlank() } ?: request.headers["content-type"]
+        val started = System.nanoTime()
         val ok = runBlocking { uploads.save(client, name, mime, size, request.body) }
-        if (ok) gate.served(client, name, size, upload = true)
+        if (ok) gate.served(client, name, size, upload = true, durationMs = elapsedMs(started))
         respond(out, if (ok) 200 else 507, "application/json", """{"ok":$ok}""".toByteArray())
     }
+
+    private fun clipsJson(since: Long, out: OutputStream) {
+        val body = buildJsonObject {
+            put(
+                "clips",
+                buildJsonArray {
+                    clips.since(since).forEach { clip ->
+                        add(
+                            buildJsonObject {
+                                put("id", clip.id)
+                                put("text", clip.text)
+                                put("phone", clip.fromPhone)
+                                put("at", clip.atMs)
+                            },
+                        )
+                    }
+                },
+            )
+        }
+        respond(out, 200, "application/json", body.toString().toByteArray())
+    }
+
+    private fun addClip(request: Request, client: String, out: OutputStream) {
+        val length = request.headers["content-length"]?.toLongOrNull() ?: 0L
+        if (length !in 1..MAX_CLIP_BYTES) return respond(out, 413, "application/json", """{"ok":false}""".toByteArray())
+        val text = request.body.readBytes().toString(Charsets.UTF_8).trim()
+        if (text.isNotEmpty()) clips.add(client, text)
+        respond(out, 200, "application/json", """{"ok":true}""".toByteArray())
+    }
+
+    private fun elapsedMs(startNanos: Long): Long = (System.nanoTime() - startNanos) / 1_000_000
 
     private fun respond(out: OutputStream, status: Int, type: String, body: ByteArray, cache: Boolean = false) {
         writeHead(out, status, type, body.size.toLong(), if (cache) mapOf("Cache-Control" to "max-age=86400") else emptyMap())
@@ -317,10 +364,12 @@ class DesktopServer(
         private const val HELLO_WAIT_MS = 20_000L
         private const val MAX_HEADERS = 64
         private const val BUFFER = 256 * 1024
+        private const val SOCKET_BUFFER = 4 * 1024 * 1024
+        private const val MAX_CLIP_BYTES = 64 * 1024L
         private val IP_LITERAL = Regex("""^(\d{1,3}\.){3}\d{1,3}$|^[0-9a-fA-F:]+$""")
         private val REASONS = mapOf(
             200 to "OK", 301 to "Moved Permanently", 400 to "Bad Request", 403 to "Forbidden", 404 to "Not Found", 410 to "Gone",
-            411 to "Length Required", 421 to "Misdirected Request", 507 to "Insufficient Storage",
+            411 to "Length Required", 413 to "Payload Too Large", 421 to "Misdirected Request", 507 to "Insufficient Storage",
         )
         private const val LOST_PAGE = """<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width">
 <title>Kaff</title><body style="background:#07100C;color:#F2FAF5;font:18px system-ui;display:grid;place-items:center;height:100vh;margin:0;text-align:center">

@@ -4,6 +4,9 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
 import android.net.wifi.WifiManager
+import android.net.wifi.p2p.WifiP2pConfig
+import android.net.wifi.p2p.WifiP2pManager
+import androidx.annotation.RequiresApi
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -34,21 +37,41 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.coroutines.resume
 
 /** A computer browser that asked to connect. */
 data class DesktopClient(val address: String, val browser: String, val os: String)
 
 /** One download or upload, newest first on the screen. */
-data class DesktopActivity(val name: String, val bytes: Long, val upload: Boolean, val saved: SavedFile? = null)
+data class DesktopActivity(
+    val name: String,
+    val bytes: Long,
+    val upload: Boolean,
+    val saved: SavedFile? = null,
+    val durationMs: Long = 0,
+) {
+    val bytesPerSecond: Double get() = if (durationMs <= 0) 0.0 else bytes * 1000.0 / durationMs
+}
 
 /** The phone's own Wi-Fi network for computers when there is no shared Wi-Fi. */
-data class HotspotInfo(val ssid: String, val passphrase: String)
+data class HotspotInfo(val ssid: String, val passphrase: String, val band: HotspotBand? = null)
+
+enum class HotspotBand { Ghz24, Ghz5 }
 
 data class DesktopState(
     val running: Boolean = false,
-    /** Full address to type, e.g. http://192.168.1.23:4999/k7m2p/, or null with no usable network. */
+    /**
+     * Address to type, e.g. http://192.168.1.23:4999/k7m2p/: on Kaff's own network when it is up
+     * (direct, fastest), otherwise on the shared Wi-Fi. Null with no usable network.
+     */
     val url: String? = null,
+    /** The same page on the shared Wi-Fi while [url] points at Kaff's network. */
+    val wifiUrl: String? = null,
+    val clips: List<DesktopServer.Clip> = emptyList(),
     val hotspot: HotspotInfo? = null,
     val hotspotStarting: Boolean = false,
     val hotspotFailed: Boolean = false,
@@ -81,7 +104,12 @@ class DesktopHost @Inject constructor(
     private val decisions = ConcurrentHashMap<String, CompletableDeferred<Boolean>>()
     private val approvedAddresses: MutableSet<String> = ConcurrentHashMap.newKeySet()
     private val thumbnails = ConcurrentHashMap<Int, ByteArray>()
+    private val lastUploads = ConcurrentHashMap<String, SavedFile>()
+    private val clips = ArrayList<DesktopServer.Clip>()
+    private val clipIds = java.util.concurrent.atomic.AtomicLong()
     private var reservation: WifiManager.LocalOnlyHotspotReservation? = null
+    @Volatile private var directGroup = false
+    private var p2pChannel: WifiP2pManager.Channel? = null
     private val page by lazy { context.assets.open("desktop/index.html").use { it.readBytes() } }
 
     /** Files the computer can download; replaces the previous list. */
@@ -93,7 +121,7 @@ class DesktopHost @Inject constructor(
     fun start() {
         if (server != null) return refreshAddress()
         token = newToken()
-        val created = DesktopServer(token, Catalog(), Uploads(), Gate(), PageAssets(), scope)
+        val created = DesktopServer(token, Catalog(), Uploads(), Clips(), Gate(), PageAssets(), scope)
         port = try {
             created.start(DesktopServer.DEFAULT_PORT)
         } catch (e: IOException) {
@@ -101,7 +129,8 @@ class DesktopHost @Inject constructor(
             return
         }
         server = created
-        _state.value = DesktopState(running = true)
+        // Keeps text queued from the share sheet before the screen opened.
+        _state.value = DesktopState(running = true, clips = synchronized(clips) { clips.toList() })
         refreshAddress()
     }
 
@@ -111,6 +140,7 @@ class DesktopHost @Inject constructor(
         decisions.values.forEach { it.complete(false) }
         decisions.clear()
         approvedAddresses.clear()
+        synchronized(clips) { clips.clear() }
         stopHotspot()
         _state.value = DesktopState()
     }
@@ -118,8 +148,24 @@ class DesktopHost @Inject constructor(
     /** Re-reads the phone's address; Wi-Fi may have changed or the hotspot come up. */
     fun refreshAddress() {
         if (server == null) return
-        val address = localAddress(preferHotspot = _state.value.hotspot != null)
-        _state.update { it.copy(url = address?.let { a -> "http://$a:$port/$token/" }) }
+        val (station, ap) = localAddresses()
+        val hotspotUp = _state.value.hotspot != null
+        val primary = if (hotspotUp) ap ?: station else station ?: ap
+        val secondary = if (hotspotUp && ap != null) station else null
+        _state.update { it.copy(url = primary?.let(::urlFor), wifiUrl = secondary?.let(::urlFor)) }
+    }
+
+    private fun urlFor(address: String) = "http://$address:$port/$token/"
+
+    /** Sends text or a link from the phone to the computer's page. */
+    fun addClip(text: String) {
+        val clean = text.trim().take(MAX_CLIP_CHARS)
+        if (clean.isEmpty()) return
+        synchronized(clips) {
+            clips += DesktopServer.Clip(clipIds.incrementAndGet(), clean, fromPhone = true, atMs = System.currentTimeMillis())
+            while (clips.size > MAX_CLIPS) clips.removeAt(0)
+            _state.update { it.copy(clips = clips.toList()) }
+        }
     }
 
     fun decide(client: DesktopClient, allow: Boolean) {
@@ -135,12 +181,99 @@ class DesktopHost @Inject constructor(
 
     // region Hotspot
 
-    /** Starts the phone's own Wi-Fi network (no internet) so a computer can join it. */
-    @SuppressLint("MissingPermission") // Location / nearby Wi-Fi are granted for Nearby already; failures are reported.
+    /**
+     * Starts Kaff's own Wi-Fi network (no internet) so a computer can join it directly.
+     *
+     * First choice is a Wi-Fi Direct group on 5 GHz with our own name and password: laptops join
+     * it like any Wi-Fi network ("DIRECT-…"), and 5 GHz is several times faster than the 2.4 GHz
+     * the system picks for a local-only hotspot. If the group cannot start (older Android, radio
+     * busy), the local-only hotspot is the fallback.
+     */
     fun startHotspot() {
-        if (reservation != null || _state.value.hotspotStarting) return
-        val wifi = context.getSystemService(WifiManager::class.java) ?: return hotspotFailed()
+        if (reservation != null || directGroup || _state.value.hotspotStarting || _state.value.hotspot != null) return
         _state.update { it.copy(hotspotStarting = true, hotspotFailed = false) }
+        scope.launch {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && startDirectGroup()) return@launch
+            startLocalOnlyHotspot()
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.Q)
+    @SuppressLint("MissingPermission") // The desktop screen asks for nearby Wi-Fi / location first; failures fall back.
+    private suspend fun startDirectGroup(): Boolean {
+        val manager = context.getSystemService(WifiP2pManager::class.java) ?: return false
+        val channel = p2pChannel ?: manager.initialize(context, Looper.getMainLooper(), null).also { p2pChannel = it }
+        val info = HotspotInfo(
+            ssid = "DIRECT-KF-Kaff-" + newToken().take(4).uppercase(),
+            passphrase = newPassphrase(),
+            band = HotspotBand.Ghz5,
+        )
+        // OEM services can leave the P2P state machine busy (ColorOS answers BUSY): clear it and retry.
+        for (band in listOf(WifiP2pConfig.GROUP_OWNER_BAND_5GHZ, WifiP2pConfig.GROUP_OWNER_BAND_AUTO)) {
+            repeat(GROUP_ATTEMPTS) { attempt ->
+                manager.p2pCall { manager.stopPeerDiscovery(channel, it) }
+                manager.p2pCall { manager.removeGroup(channel, it) }
+                delay(300)
+                val config = WifiP2pConfig.Builder()
+                    .setNetworkName(info.ssid)
+                    .setPassphrase(info.passphrase)
+                    .setGroupOperatingBand(band)
+                    .build()
+                val ok = try {
+                    manager.p2pCall { manager.createGroup(channel, config, it) }
+                } catch (e: SecurityException) {
+                    Log.w(TAG, "Wi-Fi Direct group needs nearby Wi-Fi / location", e)
+                    return false
+                }
+                Log.i(TAG, "Wi-Fi Direct group band=$band attempt=${attempt + 1} ok=$ok")
+                if (ok) {
+                    directGroup = true
+                    val actual = groupBand(manager, channel) ?: if (band == WifiP2pConfig.GROUP_OWNER_BAND_5GHZ) HotspotBand.Ghz5 else null
+                    _state.update { it.copy(hotspot = info.copy(band = actual), hotspotStarting = false) }
+                    // The group interface gets its address a moment after the callback.
+                    delay(1_200)
+                    refreshAddress()
+                    return true
+                }
+                delay(800)
+            }
+        }
+        return false
+    }
+
+    @SuppressLint("MissingPermission")
+    private suspend fun groupBand(manager: WifiP2pManager, channel: WifiP2pManager.Channel): HotspotBand? {
+        delay(600)
+        val frequency = suspendCancellableCoroutine { cont ->
+            manager.requestGroupInfo(channel) { group ->
+                val mhz = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) group?.frequency ?: 0 else 0
+                if (cont.isActive) cont.resume(mhz)
+            }
+        }
+        return when {
+            frequency >= 4_900 -> HotspotBand.Ghz5
+            frequency in 2_400..2_500 -> HotspotBand.Ghz24
+            else -> null
+        }
+    }
+
+    /** Runs a WifiP2pManager call and waits for its listener; true on success. */
+    private suspend fun WifiP2pManager.p2pCall(block: (WifiP2pManager.ActionListener) -> Unit): Boolean =
+        suspendCancellableCoroutine { cont ->
+            block(object : WifiP2pManager.ActionListener {
+                override fun onSuccess() {
+                    if (cont.isActive) cont.resume(true)
+                }
+
+                override fun onFailure(reason: Int) {
+                    if (cont.isActive) cont.resume(false)
+                }
+            })
+        }
+
+    @SuppressLint("MissingPermission")
+    private fun startLocalOnlyHotspot() {
+        val wifi = context.getSystemService(WifiManager::class.java) ?: return hotspotFailed()
         try {
             wifi.startLocalOnlyHotspot(
                 object : WifiManager.LocalOnlyHotspotCallback() {
@@ -182,6 +315,11 @@ class DesktopHost @Inject constructor(
     fun stopHotspot() {
         reservation?.close()
         reservation = null
+        if (directGroup) {
+            directGroup = false
+            val manager = context.getSystemService(WifiP2pManager::class.java)
+            p2pChannel?.let { channel -> manager?.removeGroup(channel, null) }
+        }
         _state.update { it.copy(hotspot = null, hotspotStarting = false) }
     }
 
@@ -190,31 +328,33 @@ class DesktopHost @Inject constructor(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val config = res.softApConfiguration
             val ssid = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) config.wifiSsid?.toString()?.trim('"') else config.ssid
-            ssid?.let { HotspotInfo(it, config.passphrase.orEmpty()) }
+            // The band is not public for local-only hotspots; the system usually picks 2.4 GHz.
+            ssid?.let { HotspotInfo(it, config.passphrase.orEmpty(), null) }
         } else {
-            res.wifiConfiguration?.let { HotspotInfo(it.SSID.trim('"'), it.preSharedKey?.trim('"').orEmpty()) }
+            res.wifiConfiguration?.let { HotspotInfo(it.SSID.trim('"'), it.preSharedKey?.trim('"').orEmpty(), null) }
         }
 
     // endregion
 
-    /** wlan0 for shared Wi-Fi; the soft-AP interface (ap0, swlan0, wlan1…) once our hotspot is up. */
-    private fun localAddress(preferHotspot: Boolean): String? {
+    /** (shared Wi-Fi on wlan0, our own network: the Wi-Fi Direct group p2p-* or a soft-AP such as ap0 / wlan1). */
+    private fun localAddresses(): Pair<String?, String?> {
         val candidates = try {
             NetworkInterface.getNetworkInterfaces()?.toList().orEmpty()
-                .filter { it.isUp && !it.isLoopback && !it.name.startsWith("p2p") && CELLULAR.none(it.name::startsWith) }
+                .filter { it.isUp && !it.isLoopback && CELLULAR.none(it.name::startsWith) }
                 .flatMap { nif -> nif.inetAddresses.toList().filterIsInstance<Inet4Address>().map { nif.name to it.hostAddress } }
         } catch (e: SocketException) {
             emptyList()
         }
-        fun isStation(name: String) = name == "wlan0"
-        val sorted = candidates.sortedBy { (name, _) ->
-            when {
-                preferHotspot && !isStation(name) -> 0
-                isStation(name) -> 1
-                else -> 2
-            }
-        }
-        return sorted.firstOrNull()?.second
+        val station = candidates.firstOrNull { it.first == "wlan0" }?.second
+        val others = candidates.filter { it.first != "wlan0" }
+        val ap = (if (directGroup) others.firstOrNull { it.first.startsWith("p2p") } else others.firstOrNull { !it.first.startsWith("p2p") })?.second
+        return station to ap
+    }
+
+    /** Typed by hand on a laptop: 10 easy characters, no look-alikes. */
+    private fun newPassphrase(): String {
+        val random = SecureRandom()
+        return String(CharArray(PASSPHRASE_LENGTH) { TOKEN_ALPHABET[random.nextInt(TOKEN_ALPHABET.length)] })
     }
 
     private fun newToken(): String {
@@ -262,9 +402,7 @@ class DesktopHost @Inject constructor(
             } finally {
                 _state.update { it.copy(uploading = it.uploading - key) }
             }
-            if (saved != null) {
-                _state.update { it.copy(activity = listOf(DesktopActivity(saved.meta.name, saved.meta.size, upload = true, saved = saved)) + it.activity) }
-            }
+            if (saved != null) lastUploads["$client/$name"] = saved
             return saved != null
         }
     }
@@ -307,8 +445,24 @@ class DesktopHost @Inject constructor(
             return result
         }
 
-        override fun served(client: String, name: String, bytes: Long, upload: Boolean) {
-            if (!upload) _state.update { it.copy(activity = listOf(DesktopActivity(name, bytes, upload = false)) + it.activity) }
+        override fun served(client: String, name: String, bytes: Long, upload: Boolean, durationMs: Long) {
+            val saved = if (upload) lastUploads.remove("$client/$name") else null
+            val entry = DesktopActivity(saved?.meta?.name ?: name, bytes, upload, saved, durationMs)
+            Log.i(TAG, "${if (upload) "Upload" else "Download"} ${bytes / 1_048_576} MB in ${durationMs} ms = ${"%.1f".format(entry.bytesPerSecond / 1_048_576)} MB/s")
+            _state.update { it.copy(activity = listOf(entry) + it.activity) }
+        }
+    }
+
+    private inner class Clips : DesktopServer.Clips {
+        override fun since(id: Long): List<DesktopServer.Clip> = synchronized(clips) { clips.filter { it.id > id } }
+
+        override fun add(client: String, text: String) {
+            val clean = text.take(MAX_CLIP_CHARS)
+            synchronized(clips) {
+                clips += DesktopServer.Clip(clipIds.incrementAndGet(), clean, fromPhone = false, atMs = System.currentTimeMillis())
+                while (clips.size > MAX_CLIPS) clips.removeAt(0)
+                _state.update { it.copy(clips = clips.toList()) }
+            }
         }
     }
 
@@ -331,6 +485,10 @@ class DesktopHost @Inject constructor(
     companion object {
         private const val TAG = "DesktopHost"
         private const val TOKEN_LENGTH = 5
+        private const val PASSPHRASE_LENGTH = 10
+        private const val GROUP_ATTEMPTS = 3
+        private const val MAX_CLIPS = 50
+        private const val MAX_CLIP_CHARS = 20_000
 
         /** No 0/o, 1/l/i: the token is typed by hand. */
         private const val TOKEN_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789"

@@ -67,6 +67,18 @@ object KaffPermissions {
 
     fun locationGranted(context: Context): Boolean = granted(context, Manifest.permission.ACCESS_FINE_LOCATION)
 
+    /**
+     * Kaff's local-only hotspot for computers: Android 13+ asks for nearby Wi-Fi devices, older
+     * versions for precise location.
+     */
+    val hotspot: List<String> = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        listOf(Manifest.permission.NEARBY_WIFI_DEVICES)
+    } else {
+        listOf(Manifest.permission.ACCESS_FINE_LOCATION)
+    }
+
+    fun missingHotspot(context: Context): List<String> = hotspot.filterNot { granted(context, it) }
+
     fun missingRequired(context: Context): List<String> = required.filterNot { granted(context, it) }
 
     /** What Standby mode needs to advertise without the camera. */

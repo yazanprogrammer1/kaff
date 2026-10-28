@@ -47,6 +47,7 @@ class DesktopViewModel @Inject constructor(
     fun startHotspot() = host.startHotspot()
     fun stopHotspot() = host.stopHotspot()
     fun clearFiles() = basket.clear()
+    fun sendClip(text: String) = host.addClip(text)
 
     fun addDocuments(uris: List<Uri>) {
         viewModelScope.launch { basket.addAll(uris.mapNotNull { library.describe(it) }) }
