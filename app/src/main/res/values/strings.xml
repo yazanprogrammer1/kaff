@@ -456,4 +456,8 @@
     <string name="viewer_text_truncated">هذا أول 512 ك.ب. افتح الملف كامل بتطبيق ثاني.</string>
     <string name="viewer_missing">الملف ما عاد موجود، أو انحذف، أو ما عندنا إذن نفتحه.</string>
     <string name="desktop_hotspot_wifi_off">شغّل الواي فاي في الجوال (حتى بدون إنترنت) عشان تصير الشبكة 5GHz أسرع بكثير وباسم ثابت يتذكره الكمبيوتر.</string>
+    <string name="desktop_band_title">نوع شبكة كفّ</string>
+    <string name="desktop_band_fast">5GHz · أسرع</string>
+    <string name="desktop_band_compatible">2.4GHz · لكل الأجهزة</string>
+    <string name="desktop_band_hint">الكمبيوتر ما يشوف الشبكة؟ بعض اللابتوبات مقفّل فيها 5GHz، اختر 2.4GHz.</string>
 </resources>

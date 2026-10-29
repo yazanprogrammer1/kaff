@@ -140,6 +140,7 @@ fun DesktopRoute(onBack: () -> Unit, onPickFiles: () -> Unit, viewModel: Desktop
             viewModel.startPicking()
             onPickFiles()
         },
+        onCompatible = viewModel::setCompatible,
         onCopy = { text ->
             context.getSystemService(ClipboardManager::class.java)?.setPrimaryClip(ClipData.newPlainText("Kaff", text))
             // Android 13+ shows its own "copied" confirmation.
@@ -179,6 +180,7 @@ fun DesktopScreen(
     onPaste: () -> String? = { null },
     onOpenLink: (String) -> Unit = {},
     onPickFiles: () -> Unit = onAddFiles,
+    onCompatible: (Boolean) -> Unit = {},
 ) {
     val c = KaffTheme.colors
     val desktop = state.desktop
@@ -201,7 +203,7 @@ fun DesktopScreen(
 
             if (desktop.approved.isNotEmpty()) Computers(desktop.approved)
 
-            NetworkCard(desktop, onStartHotspot, onStopHotspot, onCopy)
+            NetworkCard(desktop, onStartHotspot, onStopHotspot, onCopy, onCompatible)
 
             if (desktop.incoming.isNotEmpty()) IncomingCard(desktop.incoming, onCancelIncoming, onOpenSaved)
 
@@ -227,7 +229,13 @@ private enum class NetTab { SameWifi, Kaff }
  * Wi-Fi at all.
  */
 @Composable
-private fun NetworkCard(desktop: DesktopState, onStartHotspot: () -> Unit, onStopHotspot: () -> Unit, onCopy: (String) -> Unit) {
+private fun NetworkCard(
+    desktop: DesktopState,
+    onStartHotspot: () -> Unit,
+    onStopHotspot: () -> Unit,
+    onCopy: (String) -> Unit,
+    onCompatible: (Boolean) -> Unit,
+) {
     var chosen by rememberSaveable { mutableStateOf<NetTab?>(null) }
     val tab = chosen ?: if (desktop.onWifi) NetTab.SameWifi else NetTab.Kaff
     Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.animateContentSize()) {
@@ -242,7 +250,7 @@ private fun NetworkCard(desktop: DesktopState, onStartHotspot: () -> Unit, onSto
             }
             NetTab.Kaff -> {
                 val hotspot = desktop.hotspot
-                if (hotspot != null) HotspotCard(hotspot, desktop.hotspotHealing, onStopHotspot, onCopy)
+                if (hotspot != null) HotspotCard(hotspot, desktop.hotspotHealing, desktop.compatible, onStopHotspot, onCopy, onCompatible)
                 KaffCard(highlighted = hotspot == null) {
                     val url = desktop.kaffUrl
                     when {
@@ -347,7 +355,14 @@ private fun AddressBlock(url: String, number: Int, onCopy: (String) -> Unit) {
 
 /** Kaff's own network: the fastest path, with the name and password big enough to read across a desk. */
 @Composable
-private fun HotspotCard(hotspot: HotspotInfo, healing: Boolean, onStop: () -> Unit, onCopy: (String) -> Unit) {
+private fun HotspotCard(
+    hotspot: HotspotInfo,
+    healing: Boolean,
+    compatible: Boolean,
+    onStop: () -> Unit,
+    onCopy: (String) -> Unit,
+    onCompatible: (Boolean) -> Unit,
+) {
     val c = KaffTheme.colors
     KaffCard(highlighted = true) {
         Step(1, stringResource(R.string.desktop_step_join))
@@ -380,7 +395,47 @@ private fun HotspotCard(hotspot: HotspotInfo, healing: Boolean, onStop: () -> Un
             )
             QrCode(wifiQrPayload(hotspot.ssid, hotspot.passphrase), stringResource(R.string.desktop_qr_wifi), size = 96.dp)
         }
+        BandChooser(compatible, onCompatible)
         SecondaryButton(stringResource(R.string.desktop_hotspot_stop), onStop, accent = false, height = 44.dp)
+    }
+}
+
+/** 5 GHz is several times faster; 2.4 GHz is seen by every computer (some laptops have 5 GHz locked off). */
+@Composable
+private fun BandChooser(compatible: Boolean, onCompatible: (Boolean) -> Unit) {
+    val c = KaffTheme.colors
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(stringResource(R.string.desktop_band_title), style = MaterialTheme.typography.labelMedium, color = c.textMuted)
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clip(KaffShapes.medium)
+                .background(c.surface2)
+                .padding(3.dp),
+            horizontalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
+            listOf(false to R.string.desktop_band_fast, true to R.string.desktop_band_compatible).forEach { (value, label) ->
+                val on = value == compatible
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .heightIn(min = 44.dp)
+                        .clip(KaffShapes.small)
+                        .background(if (on) c.primary else androidx.compose.ui.graphics.Color.Transparent)
+                        .clickable(role = Role.RadioButton) { onCompatible(value) }
+                        .padding(horizontal = 6.dp, vertical = 8.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    BasicText(
+                        stringResource(label),
+                        style = MaterialTheme.typography.labelLarge.copy(color = if (on) c.onPrimary else c.textSubtle, textAlign = TextAlign.Center),
+                        maxLines = 1,
+                        autoSize = TextAutoSize.StepBased(minFontSize = 10.sp, maxFontSize = MaterialTheme.typography.labelLarge.fontSize),
+                    )
+                }
+            }
+        }
+        Text(stringResource(R.string.desktop_band_hint), style = MaterialTheme.typography.bodySmall, color = c.textMuted)
     }
 }
 

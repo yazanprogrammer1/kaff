@@ -404,4 +404,8 @@
     <string name="viewer_text_truncated">First 512 KB shown. Open the full file in another app.</string>
     <string name="viewer_missing">This file is gone, was deleted, or Kaff no longer has access to it.</string>
     <string name="desktop_hotspot_wifi_off">Turn on Wi-Fi on the phone (no internet needed) for a much faster 5 GHz network with a fixed name the computer remembers.</string>
+    <string name="desktop_band_title">Kaff network band</string>
+    <string name="desktop_band_fast">5 GHz · faster</string>
+    <string name="desktop_band_compatible">2.4 GHz · every device</string>
+    <string name="desktop_band_hint">Computer cannot see the network? Some laptops have 5 GHz locked off: pick 2.4 GHz.</string>
 </resources>

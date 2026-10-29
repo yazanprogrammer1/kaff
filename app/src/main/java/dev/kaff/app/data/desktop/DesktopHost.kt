@@ -5,6 +5,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.net.wifi.WifiManager
 import android.net.wifi.p2p.WifiP2pConfig
+import android.net.wifi.p2p.WifiP2pGroup
 import android.net.wifi.p2p.WifiP2pManager
 import androidx.annotation.RequiresApi
 import android.os.Build
@@ -107,6 +108,8 @@ data class DesktopState(
     val hotspotHealing: Boolean = false,
     /** The phone is on a Wi-Fi network a computer can share. */
     val onWifi: Boolean = false,
+    /** Kaff network on 2.4 GHz for computers without 5 GHz. */
+    val compatible: Boolean = false,
     val approved: List<DesktopClient> = emptyList(),
     val pending: DesktopClient? = null,
     /** Sent to the computer this session, newest batch last. */
@@ -197,6 +200,7 @@ class DesktopHost @Inject constructor(
             running = true,
             clips = synchronized(clips) { clips.toList() },
             outgoing = synchronized(outgoing) { outgoing.toList() },
+            compatible = compatibleMode(),
         )
         refreshAddress()
     }
@@ -283,48 +287,81 @@ class DesktopHost @Inject constructor(
         val manager = context.getSystemService(WifiP2pManager::class.java) ?: return false
         val channel = p2pChannel ?: manager.initialize(context, Looper.getMainLooper(), null).also { p2pChannel = it }
         val info = savedNetwork()
+        // Our group is already up (a retry, or a heal racing the system): keep it, so joined laptops stay.
+        // Only a group on a channel every laptop scans (2.4 GHz or 5 GHz channels 36-64) is worth keeping.
+        val compat = compatibleMode()
+        val existing = groupInfo(manager, channel)
+        val keep = if (compat) 2_400..2_500 else 2_400..5_340
+        if (existing?.networkName == info.ssid && existing.frequency in keep) {
+            return groupUp(manager, channel, info, WifiP2pConfig.GROUP_OWNER_BAND_5GHZ)
+        }
         // OEM services can leave the P2P state machine busy (ColorOS answers BUSY): clear it and retry.
-        for (band in listOf(WifiP2pConfig.GROUP_OWNER_BAND_5GHZ, WifiP2pConfig.GROUP_OWNER_BAND_AUTO)) {
+        // Same channel as the phone's own Wi-Fi first: the radio never has to hop between two channels,
+        // which keeps long transfers steady (hopping 6 <-> 11 dropped a 200 MB download, 2026-10-29).
+        val station = stationFrequency()
+        val shared = station?.takeIf { if (compat) it in 2_400..2_500 else it in 5_170..5_330 }
+        for (choice in listOfNotNull(shared) + if (compat) COMPATIBLE_CHOICES else CHANNEL_CHOICES) {
             repeat(GROUP_ATTEMPTS) { attempt ->
                 manager.p2pCall { manager.stopPeerDiscovery(channel, it) }
                 manager.p2pCall { manager.removeGroup(channel, it) }
                 delay(300)
-                val config = WifiP2pConfig.Builder()
+                val builder = WifiP2pConfig.Builder()
                     .setNetworkName(info.ssid)
                     .setPassphrase(info.passphrase)
-                    .setGroupOperatingBand(band)
-                    .build()
+                val config = try {
+                    (if (choice > 1_000) builder.setGroupOperatingFrequency(choice) else builder.setGroupOperatingBand(choice)).build()
+                } catch (e: IllegalArgumentException) {
+                    return@repeat
+                }
                 val ok = try {
                     manager.p2pCall { manager.createGroup(channel, config, it) }
                 } catch (e: SecurityException) {
                     Log.w(TAG, "Wi-Fi Direct group needs nearby Wi-Fi / location", e)
                     return false
                 }
-                Log.i(TAG, "Wi-Fi Direct group band=$band attempt=${attempt + 1} ok=$ok")
-                if (ok) {
-                    directGroup = true
-                    val actual = groupBand(manager, channel) ?: if (band == WifiP2pConfig.GROUP_OWNER_BAND_5GHZ) HotspotBand.Ghz5 else null
-                    _state.update { it.copy(hotspot = info.copy(band = actual), hotspotStarting = false) }
-                    // The group interface gets its address a moment after the callback.
-                    delay(1_200)
-                    refreshAddress()
-                    return true
+                Log.i(TAG, "Wi-Fi Direct group choice=$choice attempt=${attempt + 1} ok=$ok")
+                val band = if (choice == WifiP2pConfig.GROUP_OWNER_BAND_AUTO) choice else WifiP2pConfig.GROUP_OWNER_BAND_5GHZ
+                if (ok) return groupUp(manager, channel, info, band)
+                // Measured on ColorOS: createGroup can answer BUSY and still bring the group up a second
+                // later. Removing it on the next attempt would kick out a laptop that is joining.
+                delay(1_200)
+                if (groupInfo(manager, channel)?.networkName == info.ssid) {
+                    Log.i(TAG, "Wi-Fi Direct group came up despite the failure answer")
+                    return groupUp(manager, channel, info, band)
                 }
-                delay(800)
             }
         }
         return false
     }
 
+    /** Frequency of the Wi-Fi network the phone is on, if any. */
+    @Suppress("DEPRECATION") // connectionInfo is still the simple way to read the station frequency.
+    private fun stationFrequency(): Int? =
+        context.getSystemService(WifiManager::class.java)?.connectionInfo?.frequency?.takeIf { it > 0 }
+
+    @RequiresApi(Build.VERSION_CODES.Q)
+    private suspend fun groupUp(manager: WifiP2pManager, channel: WifiP2pManager.Channel, info: HotspotInfo, band: Int): Boolean {
+        directGroup = true
+        val actual = groupBand(manager, channel) ?: if (band == WifiP2pConfig.GROUP_OWNER_BAND_5GHZ) HotspotBand.Ghz5 else null
+        _state.update { it.copy(hotspot = info.copy(band = actual), hotspotStarting = false) }
+        // The group interface gets its address a moment after the callback.
+        delay(1_200)
+        refreshAddress()
+        return true
+    }
+
     @SuppressLint("MissingPermission")
-    private suspend fun groupBand(manager: WifiP2pManager, channel: WifiP2pManager.Channel): HotspotBand? {
-        delay(600)
-        val frequency = suspendCancellableCoroutine { cont ->
-            manager.requestGroupInfo(channel) { group ->
-                val mhz = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) group?.frequency ?: 0 else 0
-                if (cont.isActive) cont.resume(mhz)
+    private suspend fun groupInfo(manager: WifiP2pManager, channel: WifiP2pManager.Channel): WifiP2pGroup? =
+        withTimeoutOrNull(2_000) {
+            suspendCancellableCoroutine { cont ->
+                manager.requestGroupInfo(channel) { group -> if (cont.isActive) cont.resume(group) }
             }
         }
+
+    @RequiresApi(Build.VERSION_CODES.Q)
+    private suspend fun groupBand(manager: WifiP2pManager, channel: WifiP2pManager.Channel): HotspotBand? {
+        delay(600)
+        val frequency = groupInfo(manager, channel)?.frequency ?: 0
         return when {
             frequency >= 4_900 -> HotspotBand.Ghz5
             frequency in 2_400..2_500 -> HotspotBand.Ghz24
@@ -432,6 +469,27 @@ class DesktopHost @Inject constructor(
         }
     }
 
+    /**
+     * 2.4 GHz for laptops that cannot use 5 GHz at all. Measured on an Intel AX201 whose regulatory
+     * mask allows no 5 GHz channel (ChannelMaskBand52 = 0): it never sees a 5 GHz network.
+     */
+    private fun compatibleMode(): Boolean =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_COMPAT, false)
+
+    /** Switches Kaff's network between 5 GHz (fast) and 2.4 GHz (every device); remembered. */
+    fun setCompatibleMode(compatible: Boolean) {
+        if (compatibleMode() == compatible && _state.value.hotspot != null) return
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit { putBoolean(KEY_COMPAT, compatible) }
+        _state.update { it.copy(compatible = compatible) }
+        if (!wantHotspot && _state.value.hotspot == null) return
+        stopHotspot()
+        scope.launch {
+            // Give the radio a moment to tear the old group down before the new band comes up.
+            delay(800)
+            startHotspot()
+        }
+    }
+
     private fun savedNetwork(): HotspotInfo {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val ssid = prefs.getString(KEY_SSID, null) ?: ("DIRECT-KF-Kaff-" + newToken().take(4).uppercase())
@@ -440,7 +498,7 @@ class DesktopHost @Inject constructor(
             putString(KEY_SSID, ssid)
             putString(KEY_PASS, pass)
         }
-        return HotspotInfo(ssid, pass, HotspotBand.Ghz5)
+        return HotspotInfo(ssid, pass, if (compatibleMode()) HotspotBand.Ghz24 else HotspotBand.Ghz5)
     }
 
     @Suppress("DEPRECATION") // WifiConfiguration is the only source before Android 11.
@@ -690,6 +748,8 @@ class DesktopHost @Inject constructor(
 
         override fun alternates(): List<String> = listOfNotNull(_state.value.wifiUrl, _state.value.kaffUrl)
 
+        override fun requestCompatibleNetwork() = setCompatibleMode(true)
+
         override fun font(name: String): ByteArray? {
             val id = when (name) {
                 "regular" -> R.font.tajawal_regular
@@ -706,13 +766,27 @@ class DesktopHost @Inject constructor(
         private const val TAG = "DesktopHost"
         private const val TOKEN_LENGTH = 5
         private const val PASSPHRASE_LENGTH = 10
-        private const val GROUP_ATTEMPTS = 3
+        private const val GROUP_ATTEMPTS = 2
+
+        /**
+         * Where to put the group, best first: channels 36 and 48 (5180 / 5240 MHz) are allowed in every
+         * region and scanned by every laptop. Left to itself the phone may pick channel 149 (5745 MHz),
+         * which an Intel AX201 in passive-scan mode never sees (measured 2026-10-29: "network not
+         * available"). Then any 5 GHz channel, and finally whatever the radio allows (2.4 GHz).
+         */
+        @SuppressLint("InlinedApi") // Compile-time ints; only read on Android 10+.
+        private val CHANNEL_CHOICES = listOf(5_180, 5_240, WifiP2pConfig.GROUP_OWNER_BAND_5GHZ, WifiP2pConfig.GROUP_OWNER_BAND_AUTO)
+
+        /** 2.4 GHz only; the system picks the phone's own Wi-Fi channel when it can (steadier). */
+        @SuppressLint("InlinedApi") // Compile-time ints; only read on Android 10+.
+        private val COMPATIBLE_CHOICES = listOf(WifiP2pConfig.GROUP_OWNER_BAND_2GHZ, WifiP2pConfig.GROUP_OWNER_BAND_AUTO)
 
         /** Address checks run every 3 s: two misses in a row means the group is really gone. */
         private const val MISSED_BEFORE_HEAL = 2
         private const val PREFS = "kaff_desktop"
         private const val KEY_SSID = "network_name"
         private const val KEY_PASS = "network_password"
+        private const val KEY_COMPAT = "network_compatible"
         private const val MAX_CLIPS = 50
         private const val MAX_CLIP_CHARS = 20_000
 

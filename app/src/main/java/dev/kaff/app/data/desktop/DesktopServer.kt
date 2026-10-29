@@ -102,6 +102,9 @@ class DesktopServer(
 
         /** Every address this page is served on (shared Wi-Fi, Kaff network), for a page that lost the phone. */
         fun alternates(): List<String> = emptyList()
+
+        /** The computer cannot find Kaff's network: move it to 2.4 GHz, which every device sees. */
+        fun requestCompatibleNetwork() = Unit
     }
 
     private val scope = CoroutineScope(parent.coroutineContext + SupervisorJob(parent.coroutineContext.job))
@@ -165,9 +168,14 @@ class DesktopServer(
                 val client = it.inetAddress.hostAddress ?: "?"
                 route(request, client, out)
                 out.flush()
-            } catch (_: SocketException) {
-                // The browser went away (cancelled download, closed tab).
-            } catch (_: IOException) {
+            } catch (e: SocketException) {
+                // Usually the browser went away (cancelled download, closed tab).
+                android.util.Log.i("DesktopServer", "Connection ended: ${e.message}")
+            } catch (e: IOException) {
+                android.util.Log.w("DesktopServer", "Request failed: ${e.javaClass.simpleName}: ${e.message}")
+            } catch (e: RuntimeException) {
+                // A bug in a handler must not take the whole server down; the browser just retries.
+                android.util.Log.e("DesktopServer", "Handler crashed", e)
             }
         }
     }
@@ -228,6 +236,10 @@ class DesktopServer(
             rest == listOf("upload") && (request.method == "PUT" || request.method == "POST") -> upload(request, client, out)
             rest == listOf("api", "clips") && request.method == "GET" -> clipsJson(request.query["since"]?.toLongOrNull() ?: 0L, out)
             rest == listOf("api", "clip") && request.method == "POST" -> addClip(request, client, out)
+            rest == listOf("api", "compat") && request.method == "POST" -> {
+                assets.requestCompatibleNetwork()
+                respond(out, 200, "application/json", """{"ok":true}""".toByteArray())
+            }
             else -> respond(out, 404, "text/plain", ByteArray(0))
         }
     }

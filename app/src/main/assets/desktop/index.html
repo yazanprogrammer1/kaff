@@ -185,6 +185,7 @@ header { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
       <div>
         <span class="cred"><span><small data-t="network"></small><code id="fast-ssid"></code></span><button class="icon-btn" id="copy-ssid"><svg><use href="#i-copy"/></svg></button></span>
         <span class="cred"><span><small data-t="password"></small><code id="fast-pass"></code></span><button class="icon-btn" id="copy-pass"><svg><use href="#i-copy"/></svg></button></span>
+        <div><button class="btn ghost" id="compat" style="margin-top:6px;padding:8px 14px;font-size:13.5px" data-t="notFound"></button></div>
       </div>
     </div>
     <div class="grid">
@@ -242,6 +243,7 @@ header { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
     cancelled: "انلغى من الجوال", sending: "يرسل…", sent: "وصل للجوال ✓", failed: "ما وصل · تأكد من المساحة", queued: "في الانتظار",
     allSent: n => "وصلت " + T.count(n) + " إلى الجوال", units: ["بايت", "ك.ب", "م.ب", "ج.ب"], speed: "/ث",
     fastTitle: "تبي سرعة أعلى بكثير؟", fastBody: "اتصل من الكمبيوتر بشبكة كفّ المباشرة (بدون راوتر). الصفحة بتلحقك لحالها.",
+    notFound: "ما لقيت الشبكة في الكمبيوتر؟", switched: "حوّلنا الشبكة لوضع 2.4GHz. دوّرها مرة ثانية بعد 10 ثواني تقريباً.",
     network: "اسم الشبكة", password: "كلمة السر", autoDl: "تنزيل تلقائي للملفات الجديدة",
     newFiles: n => n === 1 ? "وصل ملف جديد من الجوال" : "وصلت " + T.count(n) + " جديدة من الجوال",
     moved: "انتقلنا لشبكة أسرع ✓",
@@ -260,6 +262,7 @@ header { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
     cancelled: "Cancelled on the phone", sending: "Sending…", sent: "On the phone ✓", failed: "Failed · check storage", queued: "Queued",
     allSent: n => T.count(n) + " sent to the phone", units: ["B", "KB", "MB", "GB"], speed: "/s",
     fastTitle: "Want it much faster?", fastBody: "Join Kaff's direct network on this computer (no router in between). This page follows you there.",
+    notFound: "Can't see the network on this computer?", switched: "Switched the network to 2.4 GHz. Look for it again in about 10 seconds.",
     network: "Network", password: "Password", autoDl: "Download new files automatically",
     newFiles: n => n === 1 ? "A new file arrived from the phone" : n + " new files from the phone",
     moved: "Switched to a faster network ✓",
@@ -505,6 +508,13 @@ header { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
   $("auto").addEventListener("change", e => { autoDl = e.target.checked; try { localStorage.setItem("kaff-auto", autoDl ? "1" : "0"); } catch (x) { } });
   $("copy-ssid").addEventListener("click", () => copyText($("fast-ssid").textContent));
   $("copy-pass").addEventListener("click", () => copyText($("fast-pass").textContent));
+  $("compat").addEventListener("click", async () => {
+    try {
+      await fetch("api/compat", { method: "POST", headers: H() });
+      toast(T.switched);
+      $("compat").disabled = true;
+    } catch (e) { }
+  });
   $("clip-text").placeholder = T.clipHint;
   $("clip-send").addEventListener("click", sendClip);
   $("clip-text").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendClip(); } });

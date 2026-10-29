@@ -44,6 +44,7 @@ class DesktopViewModel @Inject constructor(
     fun decide(client: DesktopClient, allow: Boolean) = host.decide(client, allow)
     fun startHotspot() = host.startHotspot()
     fun stopHotspot() = host.stopHotspot()
+    fun setCompatible(compatible: Boolean) = host.setCompatibleMode(compatible)
     fun clearFiles() = host.clearOutgoing()
     fun cancelIncoming(id: Long) = host.cancelIncoming(id)
 
