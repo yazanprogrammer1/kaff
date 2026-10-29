@@ -408,4 +408,11 @@
     <string name="desktop_band_fast">5 GHz · faster</string>
     <string name="desktop_band_compatible">2.4 GHz · every device</string>
     <string name="desktop_band_hint">Computer cannot see the network? Some laptops have 5 GHz locked off: pick 2.4 GHz.</string>
+    <string name="boost_wifi_here">Turn on Wi-Fi for full speed</string>
+    <string name="boost_wifi_there">Turn on Wi-Fi on %1$s</string>
+    <string name="boost_other_phone">the other phone</string>
+    <string name="boost_wifi_body">No internet needed. Without it the transfer crawls over Bluetooth.</string>
+    <string name="boost_bluetooth">Still on Bluetooth (slow)</string>
+    <string name="boost_bluetooth_body">Make sure both phones have Wi-Fi on, and keep them close.</string>
+    <string name="boost_turn_on">Turn on</string>
 </resources>

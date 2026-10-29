@@ -13,10 +13,13 @@ import java.util.Base64
 @Serializable
 sealed interface ProtocolMessage {
 
-    /** [turbo] tells the peer this build can run the turbo lane; older builds omit it. */
+    /**
+     * [turbo] tells the peer this build can run the turbo lane; [wifi] whether this phone's Wi-Fi
+     * radio is on (needed for full speed). Older builds omit both.
+     */
     @Serializable
     @SerialName("hello")
-    data class Hello(val version: Int, val deviceName: String, val turbo: Boolean = false) : ProtocolMessage
+    data class Hello(val version: Int, val deviceName: String, val turbo: Boolean = false, val wifi: Boolean = true) : ProtocolMessage
 
     /** [thumbnail] is a Base64 JPEG of the first file, dropped if the message would not fit. */
     @Serializable

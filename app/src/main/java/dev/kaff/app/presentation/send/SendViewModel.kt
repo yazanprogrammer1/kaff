@@ -30,6 +30,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import dev.kaff.app.data.desktop.DesktopHost
+import dev.kaff.app.data.platform.WifiReadiness
 import javax.inject.Inject
 
 @Immutable
@@ -41,6 +43,9 @@ data class SendUiState(
     val fileError: Boolean = false,
     val camera: GestureCameraState = GestureCameraState(),
     val linkQuality: LinkQuality = LinkQuality.Unknown,
+    val wifiHere: Boolean = true,
+    /** Null until the paired phone said. */
+    val wifiThere: Boolean? = null,
 )
 
 @HiltViewModel
@@ -50,6 +55,8 @@ class SendViewModel @Inject constructor(
     private val files: FileRepository,
     private val basket: Basket,
     cameraFactory: GestureCameraFactory,
+    wifi: WifiReadiness,
+    desktop: DesktopHost,
 ) : ViewModel() {
 
     private val camera = cameraFactory.create(viewModelScope)
@@ -58,12 +65,19 @@ class SendViewModel @Inject constructor(
 
     val analyzer: ImageAnalysis.Analyzer get() = camera.tracker
 
-    val state: StateFlow<SendUiState> = combine(controller.model, camera.state, preparing, fileError, controller.linkQuality) { model, cam, prep, err, link ->
-        SendUiState(model.state, model.files, prep, err, cam, link)
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, SendUiState())
+    val state: StateFlow<SendUiState> = combine(
+        combine(controller.model, camera.state, preparing, fileError, controller.linkQuality) { model, cam, prep, err, link ->
+            SendUiState(model.state, model.files, prep, err, cam, link)
+        },
+        wifi.local,
+        wifi.peer,
+    ) { ui, here, there -> ui.copy(wifiHere = here, wifiThere = there) }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, SendUiState())
 
     init {
-        // One role at a time: the radio switches from receiving (e.g. Standby) to sending.
+        // One role at a time: the radio switches from receiving (e.g. Standby) to sending, and Kaff's
+        // desktop network (a Wi-Fi Direct group) must not hold the radio Nearby upgrades to.
+        desktop.stop()
         receiveController.dispatch(ReceiveEvent.Stop)
         controller.dispatch(SendEvent.Cancel)
         controller.dispatch(SendEvent.Start)

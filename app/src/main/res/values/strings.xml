@@ -460,4 +460,11 @@
     <string name="desktop_band_fast">5GHz · أسرع</string>
     <string name="desktop_band_compatible">2.4GHz · لكل الأجهزة</string>
     <string name="desktop_band_hint">الكمبيوتر ما يشوف الشبكة؟ بعض اللابتوبات مقفّل فيها 5GHz، اختر 2.4GHz.</string>
+    <string name="boost_wifi_here">شغّل الواي فاي للسرعة القصوى</string>
+    <string name="boost_wifi_there">شغّل الواي فاي في %1$s</string>
+    <string name="boost_other_phone">الجوال الثاني</string>
+    <string name="boost_wifi_body">ما يحتاج إنترنت. بدونه النقل يمشي على البلوتوث وياخذ وقت أطول بكثير.</string>
+    <string name="boost_bluetooth">الاتصال للحين على البلوتوث (بطيء)</string>
+    <string name="boost_bluetooth_body">تأكد إن الواي فاي شغّال في الجهازين، وقرّب الجوالين من بعض.</string>
+    <string name="boost_turn_on">تشغيل</string>
 </resources>

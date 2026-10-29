@@ -8,6 +8,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.kaff.app.core.di.ApplicationScope
 import dev.kaff.app.core.di.IoDispatcher
 import dev.kaff.app.data.nearby.NearbyConnectionsTransport
+import dev.kaff.app.data.platform.WifiReadiness
 import dev.kaff.app.domain.model.LinkQuality
 import dev.kaff.app.domain.model.OutgoingFile
 import dev.kaff.app.domain.model.ReceivedFile
@@ -72,6 +73,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 class TurboTransport @Inject constructor(
     @ApplicationContext private val context: Context,
     private val nearby: NearbyConnectionsTransport,
+    private val wifi: WifiReadiness,
     @ApplicationScope private val scope: CoroutineScope,
     @IoDispatcher private val io: CoroutineDispatcher,
 ) : NearbyTransport {
@@ -106,7 +108,10 @@ class TurboTransport @Inject constructor(
         val endpointId = event.endpointId
         when (event) {
             is TransportEvent.MessageReceived -> when (val m = event.message) {
-                is ProtocolMessage.Hello -> if (m.turbo && endpointId in requested) startLane(endpointId)
+                is ProtocolMessage.Hello -> {
+                    wifi.peerSaid(m.wifi)
+                    if (m.turbo && endpointId in requested) startLane(endpointId)
+                }
                 is ProtocolMessage.TurboOffer -> {
                     scope.launch(io) { join(endpointId, m) }
                     return null
@@ -123,7 +128,10 @@ class TurboTransport @Inject constructor(
                 }
                 else -> Unit
             }
-            is TransportEvent.Disconnected -> teardown(endpointId)
+            is TransportEvent.Disconnected -> {
+                wifi.peerSaid(null)
+                teardown(endpointId)
+            }
             is TransportEvent.ConnectionResult -> if (!event.connected) teardown(endpointId)
             else -> Unit
         }
@@ -356,7 +364,7 @@ class TurboTransport @Inject constructor(
     override suspend fun rejectConnection(endpointId: String) = nearby.rejectConnection(endpointId)
 
     override suspend fun send(endpointId: String, message: ProtocolMessage): Boolean =
-        nearby.send(endpointId, if (message is ProtocolMessage.Hello) message.copy(turbo = true) else message)
+        nearby.send(endpointId, if (message is ProtocolMessage.Hello) message.copy(turbo = true, wifi = wifi.local.value) else message)
 
     override suspend fun sendFile(endpointId: String, file: OutgoingFile): Long? {
         val lane = sendLanes[endpointId]?.let { withTimeoutOrNull(LANE_WAIT_MS) { it.await() } }
@@ -398,6 +406,7 @@ class TurboTransport @Inject constructor(
     override fun stopAll() {
         (sendLanes.keys + receiveLanes.keys).toSet().forEach(::teardown)
         requested.clear()
+        wifi.peerSaid(null)
         nearby.stopAll()
     }
 

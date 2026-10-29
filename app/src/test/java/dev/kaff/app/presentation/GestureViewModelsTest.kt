@@ -30,6 +30,8 @@ import dev.kaff.app.testing.TestClock
 import dev.kaff.app.testing.outgoingFile
 import io.mockk.coEvery
 import io.mockk.every
+import dev.kaff.app.data.platform.WifiReadiness
+import kotlinx.coroutines.flow.MutableStateFlow
 import io.mockk.mockk
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -96,8 +98,8 @@ class GestureViewModelsTest {
         private val basket = Basket().apply { toggle(PickItem(file.uri, file.meta.name, file.meta.size, file.meta.mime, PickSource.Media)) }
 
         // Each phone has its own process in reality; idle stand-ins replace the other role here.
-        val sendVm = SendViewModel(send, mockk(relaxed = true), files, basket, cameraFactory(senderTracker))
-        val receiveVm = ReceiveViewModel(receive, mockk(relaxed = true), FixedDevice("Galaxy A54"), LastReceiveHolder(), cameraFactory(receiverTracker))
+        val sendVm = SendViewModel(send, mockk(relaxed = true), files, basket, cameraFactory(senderTracker), wifiOn(), mockk(relaxed = true))
+        val receiveVm = ReceiveViewModel(receive, mockk(relaxed = true), FixedDevice("Galaxy A54"), LastReceiveHolder(), cameraFactory(receiverTracker), wifiOn(), mockk(relaxed = true))
     }
 
     private var time = 0L
@@ -176,5 +178,11 @@ class GestureViewModelsTest {
         settle()
         assertTrue(receiverTracker.paused)
         assertEquals(false, world.receiveVm.state.value.camera.active)
+    }
+
+    /** Both radios on, as in the field; the flows must be real so the view model state combines. */
+    private fun wifiOn(): WifiReadiness = mockk {
+        every { local } returns MutableStateFlow(true)
+        every { peer } returns MutableStateFlow(true)
     }
 }

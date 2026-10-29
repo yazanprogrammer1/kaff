@@ -69,6 +69,8 @@ import dev.kaff.app.presentation.common.CameraStage
 import dev.kaff.app.presentation.common.DoneGroup
 import dev.kaff.app.presentation.common.DoneSummary
 import dev.kaff.app.presentation.common.RadioErrorPanel
+import dev.kaff.app.presentation.common.WifiBoostCard
+import dev.kaff.app.presentation.common.speedBlocker
 import dev.kaff.app.presentation.common.TransferContent
 import dev.kaff.app.presentation.common.TransferRow
 import dev.kaff.app.presentation.common.itemCount
@@ -152,6 +154,16 @@ fun SendScreen(state: SendUiState, analyzer: ImageAnalysis.Analyzer, actions: Se
                 Spacer(Modifier.weight(1f))
                 SendStatusPill(state)
             }
+            val transferStart = (state.session as? SendState.Transferring)?.startedAtMs
+            WifiBoostCard(
+                speedBlocker(state.wifiHere, state.wifiThere, state.linkQuality, transferStart, active = state.session !is SendState.Completed && state.session !is SendState.Idle),
+                peerName = when (val s = state.session) {
+                    is SendState.Ready -> s.peer.name
+                    is SendState.Armed -> s.peer.name
+                    is SendState.Transferring -> s.peer.name
+                    else -> null
+                },
+            )
             when (val session = state.session) {
                 is SendState.Transferring -> TransferContent(
                     sending = true,

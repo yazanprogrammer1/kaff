@@ -64,6 +64,8 @@ import dev.kaff.app.domain.transfer.ProtocolMessage
 import dev.kaff.app.domain.transfer.ReceiveState
 import dev.kaff.app.presentation.common.CameraStage
 import dev.kaff.app.presentation.common.RadioErrorPanel
+import dev.kaff.app.presentation.common.WifiBoostCard
+import dev.kaff.app.presentation.common.speedBlocker
 import dev.kaff.app.presentation.common.message
 import dev.kaff.app.ui.animation.HeroHand
 import dev.kaff.app.ui.animation.sharedHero
@@ -140,6 +142,22 @@ fun ReceiveScreen(state: ReceiveUiState, analyzer: ImageAnalysis.Analyzer, actio
                     StatusPill(pluralStringResource(R.plurals.receive_watching, seconds, seconds), tone = PillTone.Neutral, icon = KaffIcons.Eye)
                 }
             }
+            val receiving = state.session as? ReceiveState.Receiving
+            WifiBoostCard(
+                speedBlocker(
+                    state.wifiHere,
+                    state.wifiThere,
+                    state.linkQuality,
+                    receiving?.startedAtMs,
+                    active = state.session !is ReceiveState.Completed && state.session !is ReceiveState.Idle && state.session !is ReceiveState.Failed,
+                ),
+                peerName = when (val s = state.session) {
+                    is ReceiveState.Connected -> s.peer.name
+                    is ReceiveState.Offered -> s.peer.name
+                    is ReceiveState.Receiving -> s.peer.name
+                    else -> null
+                },
+            )
             AnimatedContent(
                 targetState = state.session,
                 contentKey = { it::class },

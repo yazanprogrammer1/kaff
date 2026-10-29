@@ -22,6 +22,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import dev.kaff.app.data.desktop.DesktopHost
+import dev.kaff.app.data.platform.WifiReadiness
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -33,6 +35,8 @@ data class ReceiveUiState(
     /** 0..1 progress of the open-palm hold that accepts the offer. */
     val holdProgress: Float = 0f,
     val linkQuality: LinkQuality = LinkQuality.Unknown,
+    val wifiHere: Boolean = true,
+    val wifiThere: Boolean? = null,
 )
 
 /** Keeps the last completed receive for the Done screen, independent of the session lifecycle. */
@@ -48,6 +52,8 @@ class ReceiveViewModel @Inject constructor(
     device: LocalDevice,
     private val lastReceive: LastReceiveHolder,
     cameraFactory: GestureCameraFactory,
+    wifi: WifiReadiness,
+    desktop: DesktopHost,
 ) : ViewModel() {
 
     private val camera = cameraFactory.create(viewModelScope)
@@ -61,9 +67,12 @@ class ReceiveViewModel @Inject constructor(
             0f
         }
         ReceiveUiState(session, cam, name, hold, link)
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, ReceiveUiState())
+    }.let { flow -> combine(flow, wifi.local, wifi.peer) { ui, here, there -> ui.copy(wifiHere = here, wifiThere = there) } }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, ReceiveUiState())
 
     init {
+        // Kaff's desktop network would hold the Wi-Fi Direct radio Nearby needs for full speed.
+        desktop.stop()
         sendController.dispatch(SendEvent.Cancel)
         when (controller.state.value) {
             ReceiveState.Idle, is ReceiveState.Failed, is ReceiveState.Completed -> controller.dispatch(ReceiveEvent.Start)
