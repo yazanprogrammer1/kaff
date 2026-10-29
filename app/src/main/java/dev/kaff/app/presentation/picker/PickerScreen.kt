@@ -101,6 +101,7 @@ data class PickerActions(
     val onTab: (PickTab) -> Unit = {},
     val onToggle: (PickItem) -> Unit = {},
     val onSelectAll: () -> Unit = {},
+    val onClearAll: () -> Unit = {},
     val onQuery: (String) -> Unit = {},
     val onToggleSearch: () -> Unit = {},
     val onGrantMedia: () -> Unit = {},
@@ -133,6 +134,7 @@ fun PickerRoute(onBack: () -> Unit, onReady: () -> Unit, viewModel: PickerViewMo
             onTab = viewModel::selectTab,
             onToggle = viewModel::toggle,
             onSelectAll = viewModel::selectAllVisible,
+            onClearAll = viewModel::clearAll,
             onQuery = viewModel::setQuery,
             onToggleSearch = viewModel::toggleSearch,
             onGrantMedia = { mediaPermission.launch(KaffPermissions.media.toTypedArray()) },
@@ -165,14 +167,16 @@ fun PickerScreen(state: PickerUiState, actions: PickerActions) {
                         modifier = Modifier.weight(1f),
                     )
                     val visible = state.visible.orEmpty().filterNot { it.unsupported }
-                    if (visible.isNotEmpty()) {
-                        val all = visible.all { it.uri in state.selectedUris }
+                    // "Select all" adds what fits (the basket holds 50); "cancel all" is there as soon as anything is picked.
+                    val all = visible.isNotEmpty() && visible.all { it.uri in state.selectedUris }
+                    if (visible.isNotEmpty() && !all) {
                         TextButton(onClick = actions.onSelectAll) {
-                            Text(
-                                stringResource(if (all) R.string.picker_clear_all else R.string.picker_select_all),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = c.primarySoft,
-                            )
+                            Text(stringResource(R.string.picker_select_all), style = MaterialTheme.typography.labelMedium, color = c.primarySoft)
+                        }
+                    }
+                    if (state.selectedUris.isNotEmpty()) {
+                        TextButton(onClick = actions.onClearAll) {
+                            Text(stringResource(R.string.picker_cancel_all), style = MaterialTheme.typography.labelMedium, color = c.danger)
                         }
                     }
                 }

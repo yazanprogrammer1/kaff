@@ -138,6 +138,11 @@ class PickerViewModel @Inject constructor(
         }
     }
 
+    fun clearAll() {
+        basket.clear()
+        limitHit.value = false
+    }
+
     fun setQuery(value: String) {
         query.value = value
     }

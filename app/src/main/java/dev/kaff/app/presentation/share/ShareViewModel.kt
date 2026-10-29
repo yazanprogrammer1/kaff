@@ -37,11 +37,6 @@ class ShareViewModel @Inject constructor(
     /** Shared text reaches the computer as copyable text; files go in the basket. */
     fun toDesktop() {
         val text = inbox.text
-        if (text != null) {
-            basket.clear()
-            desktop.addClip(text)
-        } else {
-            fillBasket()
-        }
+        if (text != null) desktop.addClip(text) else desktop.push(state.value.items)
     }
 }

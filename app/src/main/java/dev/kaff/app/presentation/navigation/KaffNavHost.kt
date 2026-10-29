@@ -18,6 +18,9 @@ import androidx.navigation.toRoute
 import dev.kaff.app.core.LaunchTarget
 import dev.kaff.app.core.util.KaffPermissions
 import dev.kaff.app.presentation.desktop.DesktopRoute
+import dev.kaff.app.presentation.desktop.DesktopViewModel
+import androidx.compose.runtime.remember
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import dev.kaff.app.presentation.done.DoneRoute
 import dev.kaff.app.presentation.history.HistoryRoute
 import dev.kaff.app.presentation.home.HomeRoute
@@ -28,6 +31,7 @@ import dev.kaff.app.presentation.receive.ReceiveRoute
 import dev.kaff.app.presentation.send.SendRoute
 import dev.kaff.app.presentation.settings.SettingsRoute
 import dev.kaff.app.presentation.share.ShareRoute
+import dev.kaff.app.presentation.viewer.ViewerScreen
 import dev.kaff.app.ui.animation.LocalNavAnimatedScope
 import dev.kaff.app.ui.animation.LocalSharedTransitionScope
 import dev.kaff.app.ui.theme.LocalReduceMotion
@@ -47,6 +51,9 @@ import kotlinx.serialization.Serializable
 
 /** The basket picker opened from the desktop screen; "ready" returns there instead of sending. */
 @Serializable data object DesktopPickerDestination
+
+/** A file from the history, shown full screen. */
+@Serializable data class ViewerDestination(val uri: String, val name: String, val mime: String)
 
 /** Explains and requests permissions, then continues to [target]. */
 @Serializable data class PermissionsDestination(val target: String)
@@ -171,10 +178,24 @@ fun KaffNavHost(launchTargets: Flow<LaunchTarget>) {
                     DesktopRoute(onBack = { nav.backToHome() }, onPickFiles = { nav.navigate(DesktopPickerDestination) { launchSingleTop = true } })
                 }
                 // The desktop screen stays underneath, so its server keeps running while picking.
-                composable<DesktopPickerDestination> {
-                    PickerRoute(onBack = { nav.popBackStack() }, onReady = { nav.popBackStack() })
+                composable<DesktopPickerDestination> { entry ->
+                    val desktopEntry = remember(entry) { nav.getBackStackEntry<DesktopDestination>() }
+                    val desktop: DesktopViewModel = hiltViewModel(desktopEntry)
+                    PickerRoute(
+                        onBack = { nav.popBackStack() },
+                        onReady = {
+                            desktop.sendPicked()
+                            nav.popBackStack()
+                        },
+                    )
                 }
-                composable<HistoryDestination> { HistoryRoute(onBack = nav::popBackStack) }
+                composable<HistoryDestination> {
+                    HistoryRoute(onBack = nav::popBackStack, onOpenFile = { nav.navigate(ViewerDestination(it.uri, it.name, it.mime)) })
+                }
+                composable<ViewerDestination> { entry ->
+                    val file = entry.toRoute<ViewerDestination>()
+                    ViewerScreen(file.uri, file.name, file.mime, onBack = nav::popBackStack)
+                }
                 composable<LabDestination> { GestureLabRoute(onBack = nav::popBackStack) }
                 composable<SettingsDestination> { SettingsRoute(onBack = nav::popBackStack, onLab = { nav.navigate(LabDestination) }) }
             }

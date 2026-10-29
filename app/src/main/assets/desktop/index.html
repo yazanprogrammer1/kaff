@@ -239,7 +239,7 @@ header { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
     dropTitle: "اسحب الملفات وأفلتها هنا", dropBody: "أو اضغط للاختيار · أي نوع وأي حجم",
     privacy: "اتصال محلي مباشر بين جهازيك فقط · ما يمر بأي سيرفر", connected: d => "متصل بـ " + d,
     count: n => n === 1 ? "ملف واحد" : n === 2 ? "ملفان" : n <= 10 ? n + " ملفات" : n + " ملف",
-    sending: "يرسل…", sent: "وصل للجوال ✓", failed: "ما وصل · تأكد من المساحة", queued: "في الانتظار",
+    cancelled: "انلغى من الجوال", sending: "يرسل…", sent: "وصل للجوال ✓", failed: "ما وصل · تأكد من المساحة", queued: "في الانتظار",
     allSent: n => "وصلت " + T.count(n) + " إلى الجوال", units: ["بايت", "ك.ب", "م.ب", "ج.ب"], speed: "/ث",
     fastTitle: "تبي سرعة أعلى بكثير؟", fastBody: "اتصل من الكمبيوتر بشبكة كفّ المباشرة (بدون راوتر). الصفحة بتلحقك لحالها.",
     network: "اسم الشبكة", password: "كلمة السر", autoDl: "تنزيل تلقائي للملفات الجديدة",
@@ -257,7 +257,7 @@ header { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
     dropTitle: "Drop files here", dropBody: "or click to choose · any type, any size",
     privacy: "Direct local link between your devices only · no server in between", connected: d => "Connected to " + d,
     count: n => n === 1 ? "1 file" : n + " files",
-    sending: "Sending…", sent: "On the phone ✓", failed: "Failed · check storage", queued: "Queued",
+    cancelled: "Cancelled on the phone", sending: "Sending…", sent: "On the phone ✓", failed: "Failed · check storage", queued: "Queued",
     allSent: n => T.count(n) + " sent to the phone", units: ["B", "KB", "MB", "GB"], speed: "/s",
     fastTitle: "Want it much faster?", fastBody: "Join Kaff's direct network on this computer (no router in between). This page follows you there.",
     network: "Network", password: "Password", autoDl: "Download new files automatically",
@@ -287,8 +287,9 @@ header { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
   if (location.hash) history.replaceState(null, "", location.pathname);
   const H = () => key ? { "X-Kaff-Key": key } : {};
   const K = () => key ? "?k=" + key : "";
-  let autoDl = false;
-  try { autoDl = localStorage.getItem("kaff-auto") === "1"; } catch (e) { }
+  // On by default: what the phone sends lands in Downloads by itself, like a USB copy.
+  let autoDl = true;
+  try { autoDl = localStorage.getItem("kaff-auto") !== "0"; } catch (e) { }
 
   async function hello() {
     show("wait");
@@ -416,11 +417,13 @@ header { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
   let firstRender = true;
   function render(files) {
     // Files the phone added since the last look: highlighted, announced, optionally downloaded.
-    const fresh = files.filter(f => !seen.has(f.id + "|" + f.name + "|" + f.size));
-    files.forEach(f => seen.add(f.id + "|" + f.name + "|" + f.size));
-    if (!firstRender && fresh.length) {
-      toast(T.newFiles(fresh.length));
-      if (autoDl) fresh.forEach((f, i) => setTimeout(() => download(f), i * 400));
+    const fresh = files.filter(f => !seen.has(f.id));
+    files.forEach(f => seen.add(f.id));
+    // New since the last look, or sent before this page opened and not on the computer yet.
+    const due = fresh.filter(f => !firstRender || !f.delivered);
+    if (due.length) {
+      toast(T.newFiles(due.length));
+      if (autoDl) due.forEach((f, i) => setTimeout(() => download(f), i * 450));
     }
     const freshIds = firstRender ? new Set() : new Set(fresh.map(f => f.id));
     firstRender = false;
@@ -481,7 +484,7 @@ header { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
       xhr.onload = () => {
         const ok = xhr.status === 200;
         el.classList.add(ok ? "done" : "fail");
-        state.textContent = ok ? T.sent : T.failed;
+        state.textContent = ok ? T.sent : xhr.status === 409 ? T.cancelled : T.failed;
         if (ok) sentCount++;
         resolve();
       };

@@ -53,13 +53,25 @@ class DesktopServer(
         fun files(): List<Entry>
         fun open(id: Int): InputStream?
         fun thumbnail(id: Int): ByteArray?
+
+        /** Bytes of file [id] written to a browser so far, for the phone's progress bars. */
+        fun progress(id: Int, bytes: Long) = Unit
+
+        /** File [id] reached the browser completely. */
+        fun delivered(id: Int, client: String, durationMs: Long) = Unit
     }
 
-    data class Entry(val id: Int, val name: String, val size: Long, val mime: String)
+    /**
+     * [batch] groups the files the phone sent with one "ready": the page downloads a new batch on its
+     * own, like files copied over USB.
+     */
+    data class Entry(val id: Int, val name: String, val size: Long, val mime: String, val batch: Int = 0, val delivered: Boolean = false)
+
+    enum class UploadResult { Saved, Cancelled, Failed }
 
     interface Uploads {
-        /** Saves one upload of exactly [size] bytes. Returns false if it could not be stored or was cut short. */
-        suspend fun save(client: String, name: String, mime: String?, size: Long, input: InputStream): Boolean
+        /** Saves one upload of exactly [size] bytes; the phone's user may cancel it on the way. */
+        suspend fun save(client: String, name: String, mime: String?, size: Long, input: InputStream): UploadResult
     }
 
     /** Text and links passed between the phone and the computer, oldest first. */
@@ -274,6 +286,8 @@ class DesktopServer(
                             put("name", file.name)
                             put("size", file.size)
                             put("mime", file.mime)
+                            put("batch", file.batch)
+                            put("delivered", file.delivered)
                         },
                     )
                 }
@@ -293,8 +307,9 @@ class DesktopServer(
         input.use {
             // Unknown sizes (some providers) are sent without a length; the connection end marks the body end.
             writeHead(out, 200, entry.mime, entry.size.takeIf { s -> s > 0 }, mapOf("Content-Disposition" to attachment(entry.name)))
-            val sent = it.copyTo(out, BUFFER)
+            val sent = copyReporting(it, out) { bytes -> catalog.progress(entry.id, bytes) }
             out.flush()
+            if (entry.size <= 0 || sent >= entry.size) catalog.delivered(entry.id, client, elapsedMs(started))
             gate.served(client, entry.name, sent, upload = false, durationMs = elapsedMs(started))
         }
     }
@@ -310,9 +325,11 @@ class DesktopServer(
         ZipOutputStream(out).apply { setLevel(0) }.use { zip ->
             files.forEach { file ->
                 val input = catalog.open(file.id) ?: return@forEach
+                val fileStarted = System.nanoTime()
                 zip.putNextEntry(ZipEntry(uniqueName(file.name, used)))
-                input.use { total += it.copyTo(zip, BUFFER) }
+                input.use { total += copyReporting(it, zip) { bytes -> catalog.progress(file.id, bytes) } }
                 zip.closeEntry()
+                catalog.delivered(file.id, client, elapsedMs(fileStarted))
             }
         }
         gate.served(client, name, total, upload = false, durationMs = elapsedMs(started))
@@ -324,9 +341,14 @@ class DesktopServer(
             ?: return respond(out, 411, "application/json", """{"error":"length_required"}""".toByteArray())
         val mime = request.query["type"]?.takeIf { it.isNotBlank() } ?: request.headers["content-type"]
         val started = System.nanoTime()
-        val ok = runBlocking { uploads.save(client, name, mime, size, request.body) }
-        if (ok) gate.served(client, name, size, upload = true, durationMs = elapsedMs(started))
-        respond(out, if (ok) 200 else 507, "application/json", """{"ok":$ok}""".toByteArray())
+        val result = runBlocking { uploads.save(client, name, mime, size, request.body) }
+        if (result == UploadResult.Saved) gate.served(client, name, size, upload = true, durationMs = elapsedMs(started))
+        val status = when (result) {
+            UploadResult.Saved -> 200
+            UploadResult.Cancelled -> 409
+            UploadResult.Failed -> 507
+        }
+        respond(out, status, "application/json", """{"ok":${result == UploadResult.Saved}}""".toByteArray())
     }
 
     private fun clipsJson(since: Long, out: OutputStream) {
@@ -359,6 +381,25 @@ class DesktopServer(
     }
 
     private fun elapsedMs(startNanos: Long): Long = (System.nanoTime() - startNanos) / 1_000_000
+
+    /** Copies everything, reporting progress about every 512 KB. */
+    private fun copyReporting(input: InputStream, out: OutputStream, report: (Long) -> Unit): Long {
+        val buffer = ByteArray(BUFFER)
+        var total = 0L
+        var reported = 0L
+        while (true) {
+            val n = input.read(buffer)
+            if (n < 0) break
+            out.write(buffer, 0, n)
+            total += n
+            if (total - reported >= REPORT_STEP) {
+                reported = total
+                report(total)
+            }
+        }
+        report(total)
+        return total
+    }
 
     private fun respond(out: OutputStream, status: Int, type: String, body: ByteArray, cache: Boolean = false) {
         writeHead(out, status, type, body.size.toLong(), if (cache) mapOf("Cache-Control" to "max-age=86400") else emptyMap())
@@ -409,11 +450,12 @@ class DesktopServer(
         private const val MAX_HEADERS = 64
         private const val BUFFER = 256 * 1024
         private const val SOCKET_BUFFER = 4 * 1024 * 1024
+        private const val REPORT_STEP = 512 * 1024L
         private const val MAX_CLIP_BYTES = 64 * 1024L
         private val IP_LITERAL = Regex("""^(\d{1,3}\.){3}\d{1,3}$|^[0-9a-fA-F:]+$""")
         private val REASONS = mapOf(
             200 to "OK", 301 to "Moved Permanently", 400 to "Bad Request", 403 to "Forbidden", 404 to "Not Found", 410 to "Gone",
-            411 to "Length Required", 413 to "Payload Too Large", 421 to "Misdirected Request", 507 to "Insufficient Storage",
+            409 to "Conflict", 411 to "Length Required", 413 to "Payload Too Large", 421 to "Misdirected Request", 507 to "Insufficient Storage",
         )
         private const val LOST_PAGE = """<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width">
 <title>Kaff</title><body style="background:#07100C;color:#F2FAF5;font:18px system-ui;display:grid;place-items:center;height:100vh;margin:0;text-align:center">

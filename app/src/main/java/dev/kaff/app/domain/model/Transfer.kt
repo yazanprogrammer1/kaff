@@ -94,6 +94,10 @@ enum class LinkQuality { Unknown, Low, Medium, High, Turbo }
 
 enum class TransferDirection { Sent, Received }
 
+/** One file of a history entry: where it lives on this phone, so it can be opened later. */
+@Serializable
+data class RecordFile(val uri: String, val name: String, val mime: String, val size: Long)
+
 data class TransferRecord(
     val id: Long = 0,
     val direction: TransferDirection,
@@ -106,4 +110,8 @@ data class TransferRecord(
     val durationMs: Long,
     val createdAtMs: Long,
     val savedUri: String? = null,
+    /** Every file of the transfer (older entries only have [savedUri]). */
+    val files: List<RecordFile> = emptyList(),
+    /** Transferred with a computer's browser rather than another phone. */
+    val desktop: Boolean = false,
 )

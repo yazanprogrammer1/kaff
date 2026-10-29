@@ -2,6 +2,7 @@ package dev.kaff.app.domain.transfer
 
 import dev.kaff.app.domain.model.OutgoingFile
 import dev.kaff.app.domain.model.Peer
+import dev.kaff.app.domain.model.RecordFile
 import dev.kaff.app.domain.model.TransferDirection
 import dev.kaff.app.domain.model.TransferError
 import dev.kaff.app.domain.model.TransferRecord
@@ -540,6 +541,7 @@ class SendReducer(
             success = success,
             durationMs = durationMs.coerceAtLeast(0),
             createdAtMs = clock.wallMs(),
+            files = files.map { RecordFile(it.uri, it.meta.name, it.meta.mime, it.meta.size) },
         )
     }
 }

@@ -2,6 +2,7 @@ package dev.kaff.app.domain.transfer
 
 import dev.kaff.app.domain.model.FileMeta
 import dev.kaff.app.domain.model.Peer
+import dev.kaff.app.domain.model.RecordFile
 import dev.kaff.app.domain.model.ReceivedFile
 import dev.kaff.app.domain.model.SavedFile
 import dev.kaff.app.domain.model.TransferDirection
@@ -417,7 +418,10 @@ class ReceiveReducer(
             effects + listOf(
                 receipt,
                 ReceiveEffect.Feedback(FeedbackKind.Success),
-                ReceiveEffect.Record(record(state.peer, state.offer, true, duration, saved.first().uri, saved.size, bytes)),
+                ReceiveEffect.Record(
+                    record(state.peer, state.offer, true, duration, saved.first().uri, saved.size, bytes)
+                        .copy(files = saved.map { RecordFile(it.uri, it.meta.name, it.meta.mime, it.meta.size) }),
+                ),
                 ReceiveEffect.StartTimer(ReceiveTimer.Linger, timeouts.lingerMs),
             ),
         )

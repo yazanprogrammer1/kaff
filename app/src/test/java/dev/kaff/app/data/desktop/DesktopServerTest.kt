@@ -43,11 +43,11 @@ class DesktopServerTest {
                 override fun thumbnail(id: Int): ByteArray? = null
             },
             uploads = object : DesktopServer.Uploads {
-                override suspend fun save(client: String, name: String, mime: String?, size: Long, input: InputStream): Boolean {
+                override suspend fun save(client: String, name: String, mime: String?, size: Long, input: InputStream): DesktopServer.UploadResult {
                     val bytes = input.readBytes()
-                    if (bytes.size.toLong() != size) return false
+                    if (bytes.size.toLong() != size) return DesktopServer.UploadResult.Failed
                     uploaded[name] = bytes
-                    return true
+                    return DesktopServer.UploadResult.Saved
                 }
             },
             clips = object : DesktopServer.Clips {

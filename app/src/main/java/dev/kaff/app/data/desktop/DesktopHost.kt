@@ -19,7 +19,11 @@ import dev.kaff.app.R
 import dev.kaff.app.core.di.ApplicationScope
 import dev.kaff.app.domain.model.PickItem
 import dev.kaff.app.domain.model.SavedFile
+import dev.kaff.app.domain.model.RecordFile
+import dev.kaff.app.domain.model.TransferDirection
+import dev.kaff.app.domain.model.TransferRecord
 import dev.kaff.app.domain.repository.FileRepository
+import dev.kaff.app.domain.repository.HistoryRepository
 import dev.kaff.app.domain.repository.LocalDevice
 import java.io.ByteArrayOutputStream
 import java.io.FilterInputStream
@@ -47,15 +51,36 @@ import kotlin.coroutines.resume
 /** A computer browser that asked to connect. */
 data class DesktopClient(val address: String, val browser: String, val os: String, val viaKaff: Boolean = false)
 
-/** One download or upload, newest first on the screen. */
-data class DesktopActivity(
-    val name: String,
-    val bytes: Long,
-    val upload: Boolean,
-    val saved: SavedFile? = null,
+/** A file the phone sent to the computer with "ready"; the page downloads it on its own. */
+data class DesktopOutgoing(
+    val id: Int,
+    val item: PickItem,
+    val batch: Int,
+    val sentBytes: Long = 0,
+    val done: Boolean = false,
     val durationMs: Long = 0,
+)
+
+/** A file the computer is uploading to the phone, or did. */
+data class DesktopIncoming(
+    val id: Long,
+    val name: String,
+    val mime: String,
+    val total: Long,
+    val bytes: Long = 0,
+    val startedAtMs: Long,
+    val from: String = "",
+    val saved: SavedFile? = null,
+    val failed: Boolean = false,
+    val cancelled: Boolean = false,
+    val finishedAtMs: Long = 0,
 ) {
-    val bytesPerSecond: Double get() = if (durationMs <= 0) 0.0 else bytes * 1000.0 / durationMs
+    val active: Boolean get() = saved == null && !failed && !cancelled
+    val bytesPerSecond: Double
+        get() {
+            val ms = (if (finishedAtMs > 0) finishedAtMs else System.currentTimeMillis()) - startedAtMs
+            return if (ms <= 0) 0.0 else bytes * 1000.0 / ms
+        }
 }
 
 /** The phone's own Wi-Fi network for computers when there is no shared Wi-Fi. */
@@ -84,9 +109,10 @@ data class DesktopState(
     val onWifi: Boolean = false,
     val approved: List<DesktopClient> = emptyList(),
     val pending: DesktopClient? = null,
-    val activity: List<DesktopActivity> = emptyList(),
-    /** Upload in progress: name to bytes so far / total. */
-    val uploading: Map<String, Pair<Long, Long>> = emptyMap(),
+    /** Sent to the computer this session, newest batch last. */
+    val outgoing: List<DesktopOutgoing> = emptyList(),
+    /** From the computer this session, newest first. */
+    val incoming: List<DesktopIncoming> = emptyList(),
 )
 
 /**
@@ -99,19 +125,24 @@ class DesktopHost @Inject constructor(
     @ApplicationContext private val context: Context,
     private val files: FileRepository,
     private val device: LocalDevice,
+    private val history: HistoryRepository,
     @ApplicationScope private val scope: CoroutineScope,
 ) {
     private val _state = MutableStateFlow(DesktopState())
     val state: StateFlow<DesktopState> = _state.asStateFlow()
 
-    @Volatile private var items: List<PickItem> = emptyList()
+    private val outgoing = ArrayList<DesktopOutgoing>()
+    private val outgoingIds = java.util.concurrent.atomic.AtomicInteger()
+    private val batches = java.util.concurrent.atomic.AtomicInteger()
+    private val recordedBatches: MutableSet<Int> = ConcurrentHashMap.newKeySet()
+    private val uploadIds = java.util.concurrent.atomic.AtomicLong()
+    private val cancelledUploads: MutableSet<Long> = ConcurrentHashMap.newKeySet()
     private var server: DesktopServer? = null
     private var port = 0
     private var token = ""
     private val decisions = ConcurrentHashMap<String, CompletableDeferred<Boolean>>()
     private val approvedAddresses: MutableSet<String> = ConcurrentHashMap.newKeySet()
     private val thumbnails = ConcurrentHashMap<Int, ByteArray>()
-    private val lastUploads = ConcurrentHashMap<String, SavedFile>()
     private val clips = ArrayList<DesktopServer.Clip>()
     private val clipIds = java.util.concurrent.atomic.AtomicLong()
     private var reservation: WifiManager.LocalOnlyHotspotReservation? = null
@@ -123,10 +154,31 @@ class DesktopHost @Inject constructor(
     private var p2pChannel: WifiP2pManager.Channel? = null
     private val page by lazy { context.assets.open("desktop/index.html").use { it.readBytes() } }
 
-    /** Files the computer can download; replaces the previous list. */
-    fun offer(list: List<PickItem>) {
-        items = list
+    /**
+     * Sends [items] to the computer as one batch: they show up on the page and download there by
+     * themselves. Works before the screen opens too (share sheet), they wait for the computer.
+     */
+    fun push(items: List<PickItem>) {
+        val usable = items.filterNot { it.unsupported }
+        if (usable.isEmpty()) return
+        val batch = batches.incrementAndGet()
+        synchronized(outgoing) {
+            usable.forEach { outgoing += DesktopOutgoing(outgoingIds.incrementAndGet(), it, batch) }
+            _state.update { it.copy(outgoing = outgoing.toList()) }
+        }
+    }
+
+    fun clearOutgoing() {
+        synchronized(outgoing) {
+            outgoing.clear()
+            _state.update { it.copy(outgoing = emptyList()) }
+        }
         thumbnails.clear()
+    }
+
+    /** Stops an upload from the computer; what arrived so far is deleted. */
+    fun cancelIncoming(id: Long) {
+        if (_state.value.incoming.any { it.id == id && it.active }) cancelledUploads += id
     }
 
     fun start() {
@@ -140,8 +192,12 @@ class DesktopHost @Inject constructor(
             return
         }
         server = created
-        // Keeps text queued from the share sheet before the screen opened.
-        _state.value = DesktopState(running = true, clips = synchronized(clips) { clips.toList() })
+        // Keeps text and files queued from the share sheet before the screen opened.
+        _state.value = DesktopState(
+            running = true,
+            clips = synchronized(clips) { clips.toList() },
+            outgoing = synchronized(outgoing) { outgoing.toList() },
+        )
         refreshAddress()
     }
 
@@ -152,6 +208,10 @@ class DesktopHost @Inject constructor(
         decisions.clear()
         approvedAddresses.clear()
         synchronized(clips) { clips.clear() }
+        synchronized(outgoing) { outgoing.clear() }
+        recordedBatches.clear()
+        cancelledUploads.clear()
+        thumbnails.clear()
         stopHotspot()
         _state.value = DesktopState()
     }
@@ -423,11 +483,13 @@ class DesktopHost @Inject constructor(
     }
 
     private inner class Catalog : DesktopServer.Catalog {
-        override fun files(): List<DesktopServer.Entry> = items.mapIndexed { i, item ->
-            DesktopServer.Entry(i, item.name, item.size, item.mime)
+        override fun files(): List<DesktopServer.Entry> = synchronized(outgoing) {
+            outgoing.map { DesktopServer.Entry(it.id, it.item.name, it.item.size, it.item.mime, it.batch, it.done) }
         }
 
-        override fun open(id: Int): InputStream? = items.getOrNull(id)?.let { item ->
+        private fun item(id: Int): PickItem? = synchronized(outgoing) { outgoing.firstOrNull { it.id == id }?.item }
+
+        override fun open(id: Int): InputStream? = item(id)?.let { item ->
             try {
                 context.contentResolver.openInputStream(item.uri.toUri())
             } catch (e: IOException) {
@@ -439,8 +501,8 @@ class DesktopHost @Inject constructor(
 
         override fun thumbnail(id: Int): ByteArray? {
             thumbnails[id]?.let { return it }
-            val item = items.getOrNull(id) ?: return null
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return null
+            val item = item(id) ?: return null
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q || item.packageName != null) return null
             return try {
                 val bitmap = context.contentResolver.loadThumbnail(item.uri.toUri(), Size(THUMB_PX, THUMB_PX), null)
                 ByteArrayOutputStream().also { bitmap.compress(Bitmap.CompressFormat.JPEG, 82, it) }.toByteArray()
@@ -451,28 +513,92 @@ class DesktopHost @Inject constructor(
                 null
             }
         }
-    }
 
-    private inner class Uploads : DesktopServer.Uploads {
-        override suspend fun save(client: String, name: String, mime: String?, size: Long, input: InputStream): Boolean {
-            val key = "$client/$name/${System.nanoTime()}"
-            val counting = Counting(input) { bytes -> _state.update { it.copy(uploading = it.uploading + (key to (bytes to size))) } }
-            val saved = try {
-                files.import(name, mime, counting, expectedSize = size)
-            } finally {
-                _state.update { it.copy(uploading = it.uploading - key) }
+        override fun progress(id: Int, bytes: Long) = updateOutgoing(id) { it.copy(sentBytes = maxOf(it.sentBytes, bytes)) }
+
+        override fun delivered(id: Int, client: String, durationMs: Long) {
+            updateOutgoing(id) { it.copy(sentBytes = it.item.size, done = true, durationMs = durationMs) }
+            val batch = synchronized(outgoing) {
+                val file = outgoing.firstOrNull { it.id == id } ?: return
+                outgoing.filter { it.batch == file.batch }
             }
-            if (saved != null) lastUploads["$client/$name"] = saved
-            return saved != null
+            // One history entry per "ready", once the whole batch is on the computer.
+            if (batch.all { it.done } && recordedBatches.add(batch.first().batch)) {
+                record(
+                    TransferDirection.Sent,
+                    client,
+                    batch.map { RecordFile(it.item.uri, it.item.name, it.item.mime, it.item.size) },
+                    batch.sumOf { it.durationMs },
+                )
+            }
         }
     }
 
-    /** Reports progress at most every [STEP] bytes so the state flow is not flooded. */
-    private class Counting(input: InputStream, private val report: (Long) -> Unit) : FilterInputStream(input) {
+    private fun updateOutgoing(id: Int, change: (DesktopOutgoing) -> DesktopOutgoing) {
+        synchronized(outgoing) {
+            val index = outgoing.indexOfFirst { it.id == id }
+            if (index < 0) return
+            outgoing[index] = change(outgoing[index])
+            _state.update { it.copy(outgoing = outgoing.toList()) }
+        }
+    }
+
+    private fun updateIncoming(id: Long, change: (DesktopIncoming) -> DesktopIncoming) {
+        _state.update { state -> state.copy(incoming = state.incoming.map { if (it.id == id) change(it) else it }) }
+    }
+
+    private inner class Uploads : DesktopServer.Uploads {
+        override suspend fun save(client: String, name: String, mime: String?, size: Long, input: InputStream): DesktopServer.UploadResult {
+            val id = uploadIds.incrementAndGet()
+            val type = mime?.takeIf { it.isNotBlank() } ?: "application/octet-stream"
+            val entry = DesktopIncoming(id, name, type, size, startedAtMs = System.currentTimeMillis(), from = clientLabel(client))
+            _state.update { it.copy(incoming = listOf(entry) + it.incoming) }
+            val counting = Counting(input, cancelled = { id in cancelledUploads }) { bytes -> updateIncoming(id) { it.copy(bytes = bytes) } }
+            val saved = try {
+                files.import(name, mime, counting, expectedSize = size)
+            } catch (e: CancelledUpload) {
+                null
+            }
+            val cancelled = cancelledUploads.remove(id)
+            updateIncoming(id) {
+                it.copy(
+                    bytes = if (saved != null) size else it.bytes,
+                    saved = saved,
+                    cancelled = cancelled,
+                    failed = saved == null && !cancelled,
+                    finishedAtMs = System.currentTimeMillis(),
+                )
+            }
+            if (saved != null) {
+                record(
+                    TransferDirection.Received,
+                    client,
+                    listOf(RecordFile(saved.uri, saved.meta.name, saved.meta.mime, saved.meta.size)),
+                    System.currentTimeMillis() - entry.startedAtMs,
+                    saved.uri,
+                )
+            }
+            return when {
+                saved != null -> DesktopServer.UploadResult.Saved
+                cancelled -> DesktopServer.UploadResult.Cancelled
+                else -> DesktopServer.UploadResult.Failed
+            }
+        }
+    }
+
+    private class CancelledUpload : IOException("Cancelled on the phone")
+
+    /** Reports progress at most every [STEP] bytes so the state flow is not flooded; stops when cancelled. */
+    private class Counting(
+        input: InputStream,
+        private val cancelled: () -> Boolean,
+        private val report: (Long) -> Unit,
+    ) : FilterInputStream(input) {
         private var total = 0L
         private var reported = 0L
 
         override fun read(b: ByteArray, off: Int, len: Int): Int {
+            if (cancelled()) throw CancelledUpload()
             val n = super.read(b, off, len)
             if (n > 0) {
                 total += n
@@ -486,6 +612,32 @@ class DesktopHost @Inject constructor(
 
         companion object {
             const val STEP = 512 * 1024L
+        }
+    }
+
+    private fun clientLabel(client: String): String =
+        _state.value.approved.firstOrNull { it.address == client }?.let { listOf(it.browser, it.os).filter(String::isNotBlank).joinToString(" · ") }
+            ?: context.getString(R.string.desktop_computer)
+
+    private fun record(direction: TransferDirection, client: String, recordFiles: List<RecordFile>, durationMs: Long, savedUri: String? = null) {
+        val first = recordFiles.firstOrNull() ?: return
+        scope.launch {
+            history.add(
+                TransferRecord(
+                    direction = direction,
+                    peerName = clientLabel(client),
+                    fileCount = recordFiles.size,
+                    totalBytes = recordFiles.sumOf { it.size },
+                    firstFileName = first.name,
+                    firstMime = first.mime,
+                    success = true,
+                    durationMs = durationMs,
+                    createdAtMs = System.currentTimeMillis(),
+                    savedUri = savedUri ?: first.uri,
+                    files = recordFiles,
+                    desktop = true,
+                ),
+            )
         }
     }
 
@@ -506,10 +658,8 @@ class DesktopHost @Inject constructor(
         }
 
         override fun served(client: String, name: String, bytes: Long, upload: Boolean, durationMs: Long) {
-            val saved = if (upload) lastUploads.remove("$client/$name") else null
-            val entry = DesktopActivity(saved?.meta?.name ?: name, bytes, upload, saved, durationMs)
-            Log.i(TAG, "${if (upload) "Upload" else "Download"} ${bytes / 1_048_576} MB in ${durationMs} ms = ${"%.1f".format(entry.bytesPerSecond / 1_048_576)} MB/s")
-            _state.update { it.copy(activity = listOf(entry) + it.activity) }
+            val speed = if (durationMs <= 0) 0.0 else bytes * 1000.0 / durationMs / 1_048_576
+            Log.i(TAG, "${if (upload) "Upload" else "Download"} ${bytes / 1_048_576} MB in $durationMs ms = ${"%.1f".format(speed)} MB/s")
         }
     }
 

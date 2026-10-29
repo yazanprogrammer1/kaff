@@ -72,7 +72,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.kaff.app.R
 import dev.kaff.app.core.util.fileSizeText
 import dev.kaff.app.core.util.speedText
-import dev.kaff.app.data.desktop.DesktopActivity
+import dev.kaff.app.data.desktop.DesktopIncoming
+import dev.kaff.app.data.desktop.DesktopOutgoing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.remember
+import dev.kaff.app.domain.model.FileKind
+import dev.kaff.app.domain.model.FileMeta
+import dev.kaff.app.domain.model.SavedFile
+import dev.kaff.app.ui.components.FileTile
+import kotlinx.coroutines.delay
 import dev.kaff.app.data.desktop.DesktopClient
 import dev.kaff.app.data.desktop.DesktopState
 import dev.kaff.app.data.desktop.HotspotBand
@@ -125,8 +134,12 @@ fun DesktopRoute(onBack: () -> Unit, onPickFiles: () -> Unit, viewModel: Desktop
         onClearFiles = viewModel::clearFiles,
         onStartHotspot = viewModel::startHotspot,
         onStopHotspot = viewModel::stopHotspot,
-        onOpen = { activity -> activity.saved?.let { openFile(context, it) } },
-        onPickFiles = onPickFiles,
+        onOpenSaved = { openFile(context, it) },
+        onCancelIncoming = viewModel::cancelIncoming,
+        onPickFiles = {
+            viewModel.startPicking()
+            onPickFiles()
+        },
         onCopy = { text ->
             context.getSystemService(ClipboardManager::class.java)?.setPrimaryClip(ClipData.newPlainText("Kaff", text))
             // Android 13+ shows its own "copied" confirmation.
@@ -159,7 +172,8 @@ fun DesktopScreen(
     onClearFiles: () -> Unit,
     onStartHotspot: () -> Unit,
     onStopHotspot: () -> Unit,
-    onOpen: (DesktopActivity) -> Unit,
+    onOpenSaved: (SavedFile) -> Unit,
+    onCancelIncoming: (Long) -> Unit = {},
     onCopy: (String) -> Unit = {},
     onSendClip: (String) -> Unit = {},
     onPaste: () -> String? = { null },
@@ -189,12 +203,12 @@ fun DesktopScreen(
 
             NetworkCard(desktop, onStartHotspot, onStopHotspot, onCopy)
 
-            FilesCard(state.items, connected = desktop.approved.isNotEmpty(), onPickFiles, onAddFiles, onClearFiles)
+            if (desktop.incoming.isNotEmpty()) IncomingCard(desktop.incoming, onCancelIncoming, onOpenSaved)
+
+            OutgoingCard(desktop.outgoing, connected = desktop.approved.isNotEmpty(), onPickFiles, onAddFiles, onClearFiles)
 
             ClipsCard(desktop.clips, onSendClip, onPaste, onCopy, onOpenLink)
 
-            desktop.uploading.values.forEach { (bytes, total) -> UploadRow(bytes, total) }
-            if (desktop.activity.isNotEmpty()) ActivityCard(desktop.activity, onOpen)
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                 Icon(KaffIcons.Lock, contentDescription = null, tint = c.primary, modifier = Modifier.size(16.dp))
@@ -350,6 +364,10 @@ private fun HotspotCard(hotspot: HotspotInfo, healing: Boolean, onStop: () -> Un
                 ),
                 icon = KaffIcons.Bolt,
             )
+        }
+        if (hotspot.band == null) {
+            // Local-only hotspot fallback: Wi-Fi Direct (5 GHz, fixed name) needs the phone's Wi-Fi switched on.
+            Text(stringResource(R.string.desktop_hotspot_wifi_off), style = MaterialTheme.typography.bodySmall, color = c.textMuted)
         }
         Credential(stringResource(R.string.desktop_hotspot_name), hotspot.ssid, stringResource(R.string.desktop_copy_name)) { onCopy(hotspot.ssid) }
         Credential(stringResource(R.string.desktop_hotspot_password), hotspot.passphrase, stringResource(R.string.desktop_copy_password)) { onCopy(hotspot.passphrase) }
@@ -538,116 +556,196 @@ private fun Computers(clients: List<DesktopClient>) {
     }
 }
 
+/** Sent to the computer: each file with its own download bar, like a copy over USB. */
 @Composable
-private fun FilesCard(items: List<PickItem>, connected: Boolean, onPickFiles: () -> Unit, onAddFiles: () -> Unit, onClearFiles: () -> Unit) {
+private fun OutgoingCard(files: List<DesktopOutgoing>, connected: Boolean, onPickFiles: () -> Unit, onAddFiles: () -> Unit, onClear: () -> Unit) {
     val c = KaffTheme.colors
     KaffCard {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            if (items.isEmpty()) {
-                IconBadge(KaffIcons.Download)
-            } else {
-                MiniStack(items.take(3).map { StackCard(rememberThumbnail(if (it.source == PickSource.App) null else it.uri, it.packageName), it.kind) })
-            }
+            IconBadge(KaffIcons.Upload)
             Column(Modifier.weight(1f)) {
-                Text(
-                    if (items.isEmpty()) stringResource(R.string.desktop_files_empty) else stringResource(R.string.desktop_files_ready, itemCount(items.size)),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = c.text,
-                )
+                Text(stringResource(R.string.desktop_out_title), style = MaterialTheme.typography.titleMedium, color = c.text)
+                val done = files.count { it.done }
                 Text(
                     when {
-                        items.isEmpty() -> stringResource(R.string.desktop_files_empty_body)
-                        connected -> fileSizeText(items.sumOf { it.size }) + " · " + stringResource(R.string.desktop_files_on_computer)
-                        else -> fileSizeText(items.sumOf { it.size }) + " · " + stringResource(R.string.desktop_files_waiting)
+                        files.isEmpty() -> stringResource(R.string.desktop_out_body)
+                        done == files.size -> stringResource(R.string.desktop_out_all_done, itemCount(files.size))
+                        connected -> stringResource(R.string.desktop_out_progress, done, files.size)
+                        else -> stringResource(R.string.desktop_files_waiting)
                     },
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (items.isNotEmpty() && connected) c.primarySoft else c.textMuted,
+                    color = if (files.isNotEmpty() && done == files.size) c.primarySoft else c.textMuted,
                 )
             }
         }
         PrimaryButton(stringResource(R.string.desktop_files_pick), onPickFiles, height = 52.dp, trailingIcon = KaffIcons.Upload)
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             SecondaryButton(stringResource(R.string.desktop_files_add), onAddFiles, Modifier.weight(1f), accent = false, height = 46.dp)
-            if (items.isNotEmpty()) SecondaryButton(stringResource(R.string.desktop_files_clear), onClearFiles, Modifier.weight(1f), accent = false, height = 46.dp)
+            if (files.isNotEmpty()) SecondaryButton(stringResource(R.string.desktop_files_clear), onClear, Modifier.weight(1f), accent = false, height = 46.dp)
         }
+        files.asReversed().take(MAX_ROWS).forEach { file ->
+            TransferRow(
+                name = file.item.name,
+                thumbUri = file.item.uri.takeIf { file.item.packageName == null },
+                packageName = file.item.packageName,
+                kind = file.item.kind,
+                bytes = file.sentBytes,
+                total = file.item.size,
+                status = when {
+                    file.done -> stringResource(R.string.desktop_row_on_computer, fileSizeText(file.item.size))
+                    file.sentBytes > 0 -> "${fileSizeText(file.sentBytes)} / ${fileSizeText(file.item.size)}"
+                    else -> stringResource(R.string.desktop_row_waiting, fileSizeText(file.item.size))
+                },
+                done = file.done,
+                active = !file.done && file.sentBytes > 0,
+            )
+        }
+        if (files.size > MAX_ROWS) MoreRows(files.size - MAX_ROWS)
     }
 }
 
+/** From the computer: live progress, time left and cancel; open once it is saved. */
 @Composable
-private fun UploadRow(bytes: Long, total: Long) {
+private fun IncomingCard(files: List<DesktopIncoming>, onCancel: (Long) -> Unit, onOpen: (SavedFile) -> Unit) {
     val c = KaffTheme.colors
-    KaffCard(contentPadding = PaddingValues(14.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Icon(KaffIcons.Download, contentDescription = null, tint = c.primary, modifier = Modifier.size(20.dp))
-            Text(stringResource(R.string.desktop_receiving), style = MaterialTheme.typography.titleSmall, color = c.text, modifier = Modifier.weight(1f))
-            Text("${fileSizeText(bytes)} / ${fileSizeText(total)}", style = MaterialTheme.typography.bodySmall, color = c.textMuted)
-        }
-        LinearProgressIndicator(
-            progress = { if (total <= 0) 0f else (bytes.toFloat() / total).coerceIn(0f, 1f) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(6.dp)
-                .clip(KaffShapes.pill),
-            color = c.primary,
-            trackColor = c.surface2,
-            drawStopIndicator = {},
-        )
-    }
-}
-
-@Composable
-private fun ActivityCard(activity: List<DesktopActivity>, onOpen: (DesktopActivity) -> Unit) {
-    val c = KaffTheme.colors
-    KaffCard {
-        Text(stringResource(R.string.desktop_activity), style = MaterialTheme.typography.titleMedium, color = c.text)
-        activity.take(MAX_ROWS).forEach { item ->
-            val clickable = item.saved != null
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 48.dp)
-                    .clip(KaffShapes.medium)
-                    .then(if (clickable) Modifier.clickable(role = Role.Button) { onOpen(item) } else Modifier)
-                    .padding(vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                ActivityIcon(if (item.upload) KaffIcons.Download else KaffIcons.Upload)
-                Column(Modifier.weight(1f)) {
-                    Text(item.name, style = MaterialTheme.typography.bodyLarge, color = c.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(
-                        stringResource(if (item.upload) R.string.desktop_activity_in else R.string.desktop_activity_out, fileSizeText(item.bytes)) +
-                            if (item.bytesPerSecond > 0) " · " + speedText(item.bytesPerSecond) else "",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = c.textMuted,
-                    )
-                }
-                if (clickable) Text(stringResource(R.string.desktop_open), style = MaterialTheme.typography.labelLarge, color = c.primarySoft)
+    KaffCard(highlighted = files.any { it.active }) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            IconBadge(KaffIcons.Download)
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(R.string.desktop_in_title), style = MaterialTheme.typography.titleMedium, color = c.text)
+                Text(stringResource(R.string.desktop_in_body), style = MaterialTheme.typography.bodyMedium, color = c.textMuted)
             }
         }
-        if (activity.size > MAX_ROWS) {
-            Text(
-                pluralStringResource(R.plurals.desktop_activity_more, activity.size - MAX_ROWS, activity.size - MAX_ROWS),
-                style = MaterialTheme.typography.bodySmall,
-                color = c.textMuted,
+        // Re-read the clock every second so speed and time left move while bytes arrive.
+        var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+        LaunchedEffect(files.any { it.active }) {
+            while (files.any { it.active }) {
+                delay(1_000)
+                now = System.currentTimeMillis()
+            }
+        }
+        files.take(MAX_ROWS).forEach { file ->
+            val saved = file.saved
+            val elapsed = ((if (file.finishedAtMs > 0) file.finishedAtMs else now) - file.startedAtMs).coerceAtLeast(1)
+            val speed = file.bytes * 1000.0 / elapsed
+            val status = when {
+                saved != null -> stringResource(R.string.desktop_row_saved, fileSizeText(file.total), speedText(speed))
+                file.cancelled -> stringResource(R.string.desktop_row_cancelled)
+                file.failed -> stringResource(R.string.desktop_row_failed)
+                speed > 0 && file.bytes > 0 -> {
+                    val left = ((file.total - file.bytes) / speed).toLong().coerceAtLeast(0)
+                    "${fileSizeText(file.bytes)} / ${fileSizeText(file.total)} · ${speedText(speed)} · " +
+                        pluralStringResource(R.plurals.transfer_eta, left.toInt(), left.toInt())
+                }
+                else -> stringResource(R.string.desktop_row_starting, fileSizeText(file.total))
+            }
+            TransferRow(
+                name = file.name,
+                thumbUri = saved?.uri,
+                packageName = null,
+                kind = FileMeta(file.name, file.total, file.mime, "").kind,
+                bytes = file.bytes,
+                total = file.total,
+                status = status,
+                done = saved != null,
+                active = file.active,
+                failed = file.failed || file.cancelled,
+                onClick = saved?.let { { onOpen(it) } },
+                trailing = {
+                    when {
+                        file.active -> TextButton(onClick = { onCancel(file.id) }) {
+                            Text(stringResource(R.string.desktop_cancel), color = c.danger)
+                        }
+                        saved != null -> TextButton(onClick = { onOpen(saved) }) {
+                            Text(stringResource(R.string.desktop_open), color = c.primarySoft)
+                        }
+                    }
+                },
+            )
+        }
+        if (files.size > MAX_ROWS) MoreRows(files.size - MAX_ROWS)
+    }
+}
+
+@Composable
+private fun TransferRow(
+    name: String,
+    thumbUri: String?,
+    packageName: String?,
+    kind: FileKind,
+    bytes: Long,
+    total: Long,
+    status: String,
+    done: Boolean,
+    active: Boolean,
+    failed: Boolean = false,
+    onClick: (() -> Unit)? = null,
+    trailing: @Composable () -> Unit = {},
+) {
+    val c = KaffTheme.colors
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(KaffShapes.medium)
+            .background(c.surface2)
+            .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
+            .padding(10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box {
+                FileTile(rememberThumbnail(thumbUri, packageName), kind, size = 44.dp, shape = KaffShapes.small, bordered = false)
+                if (done) {
+                    Box(
+                        Modifier
+                            .align(Alignment.BottomEnd)
+                            .size(18.dp)
+                            .clip(CircleShape)
+                            .background(c.primary),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(KaffIcons.Check, contentDescription = null, tint = c.onPrimary, modifier = Modifier.size(11.dp))
+                    }
+                }
+            }
+            Column(Modifier.weight(1f)) {
+                Text(name, style = MaterialTheme.typography.bodyLarge, color = c.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    status,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = when {
+                        failed -> c.danger
+                        done -> c.primarySoft
+                        else -> c.textMuted
+                    },
+                    maxLines = 2,
+                )
+            }
+            trailing()
+        }
+        if (active || (!done && !failed && bytes > 0)) {
+            val progress by animateFloatAsState(if (total <= 0) 0f else (bytes.toFloat() / total).coerceIn(0f, 1f), label = "row")
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(5.dp)
+                    .clip(KaffShapes.pill),
+                color = c.primary,
+                trackColor = c.surface,
+                drawStopIndicator = {},
             )
         }
     }
 }
 
 @Composable
-private fun ActivityIcon(icon: ImageVector) {
-    val c = KaffTheme.colors
-    Box(
-        Modifier
-            .size(36.dp)
-            .clip(KaffShapes.small)
-            .background(c.primary.copy(alpha = 0.12f))
-            .border(1.dp, c.primary.copy(alpha = 0.25f), KaffShapes.small),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(icon, contentDescription = null, tint = c.primary, modifier = Modifier.size(18.dp))
-    }
+private fun MoreRows(count: Int) {
+    Text(
+        pluralStringResource(R.plurals.desktop_activity_more, count, count),
+        style = MaterialTheme.typography.bodySmall,
+        color = KaffTheme.colors.textMuted,
+    )
 }
 
 @Composable
@@ -689,12 +787,17 @@ private fun DesktopPreview() {
                 DesktopState(
                     running = true,
                     url = "http://192.168.1.23:4999/k7m2p/",
+                    wifiUrl = "http://192.168.1.23:4999/k7m2p/",
+                    onWifi = true,
                     approved = listOf(DesktopClient("192.168.1.5", "Chrome", "Windows")),
-                    activity = listOf(DesktopActivity("IMG_2041.jpg", 3_400_000, upload = false)),
+                    outgoing = listOf(
+                        DesktopOutgoing(1, PickItem("content://x/1", "IMG_2041.jpg", 3_400_000L, "image/jpeg", PickSource.Media), 1, 3_400_000L, done = true),
+                        DesktopOutgoing(2, PickItem("content://x/2", "trip.mp4", 90_000_000L, "video/mp4", PickSource.Media), 1, 30_000_000L),
+                    ),
+                    incoming = listOf(DesktopIncoming(1, "setup.exe", "application/octet-stream", 80_000_000L, 20_000_000L, startedAtMs = 0)),
                 ),
-                List(3) { PickItem("content://x/$it", "IMG_$it.jpg", 2_400_000L, "image/jpeg", PickSource.Media) },
             ),
-            {}, {}, {}, {}, {}, {},
+            onBack = {}, onAddFiles = {}, onClearFiles = {}, onStartHotspot = {}, onStopHotspot = {}, onOpenSaved = {},
         )
     }
 }
