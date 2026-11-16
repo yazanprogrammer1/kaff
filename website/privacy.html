@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>سياسة الخصوصية · كفّ</title>
+<meta name="description" content="سياسة خصوصية تطبيق كفّ: النقل مباشر بين أجهزتك، بدون حسابات ولا سيرفرات ولا إعلانات.">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #07100C; --surface: #101B16; --border: rgba(255,255,255,.08);
+  --primary: #2BE38B; --soft: #7FF0B8; --text: #F2FAF5; --muted: #9DB8AA;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) { --bg: #F6FBF8; --surface: #FFFFFF; --border: rgba(0,0,0,.08); --primary: #1FCB7B; --soft: #0B7A48; --text: #07100C; --muted: #4E6A5C; }
+}
+:root[data-theme="dark"] { --bg: #07100C; --surface: #101B16; --border: rgba(255,255,255,.08); --primary: #2BE38B; --soft: #7FF0B8; --text: #F2FAF5; --muted: #9DB8AA; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.85 Tajawal, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 780px; margin: 0 auto; padding: 32px 16px 80px; }
+nav { display: flex; align-items: center; gap: 12px; margin-bottom: 40px; }
+nav a.brand { display: flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none; font-weight: 800; font-size: 22px; }
+nav img { width: 36px; height: 36px; }
+nav .spacer { flex: 1; }
+.lang { border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 999px; padding: 8px 16px; font: 500 14px Tajawal, system-ui, sans-serif; cursor: pointer; }
+h1 { font-size: clamp(30px, 6vw, 44px); line-height: 1.25; margin: 0 0 8px; font-weight: 800; }
+.updated { color: var(--muted); margin: 0 0 32px; }
+.lead { font-size: 19px; padding: 20px 22px; border-radius: 20px; background: var(--surface); border: 1px solid var(--border); border-inline-start: 4px solid var(--primary); }
+h2 { font-size: 22px; margin: 40px 0 8px; }
+p, li { color: var(--text); }
+li { margin: 6px 0; }
+a { color: var(--soft); }
+.muted { color: var(--muted); }
+[lang="en"] { display: none; }
+html[data-lang="en"] [lang="ar"] { display: none; }
+html[data-lang="en"] [lang="en"] { display: block; }
+footer { margin-top: 56px; color: var(--muted); font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <a class="brand" href="./"><img src="assets/icon.svg" alt=""><span lang="ar">كفّ</span><span lang="en">Kaff</span></a>
+    <span class="spacer"></span>
+    <button class="lang" id="lang" type="button">English</button>
+  </nav>
+
+  <article lang="ar">
+    <h1>سياسة الخصوصية</h1>
+    <p class="updated">آخر تحديث: 16 نوفمبر 2026</p>
+    <p class="lead">كفّ ينقل ملفاتك مباشرة بين أجهزتك. ما عندنا حسابات، ولا سيرفرات، ولا إعلانات، ولا أدوات تتبّع. ملفاتك ما تمر علينا أبداً، وما نجمع أي بيانات عنك.</p>
+
+    <h2>البيانات اللي نجمعها</h2>
+    <p>ولا شي. كفّ ما يرسل أي بيانات لنا أو لأي طرف ثالث. ما فيه تسجيل دخول، ولا إحصائيات استخدام، ولا تقارير أعطال تُرسل تلقائياً.</p>
+
+    <h2>الملفات اللي تنقلها</h2>
+    <ul>
+      <li>تنتقل مباشرة من جهاز لجهاز عبر البلوتوث والواي فاي المحلي، بدون إنترنت.</li>
+      <li>النقل بين جوالين مشفّر من طرف لطرف (Google Nearby Connections، ومسار كفّ السريع بتشفير AES-256-GCM).</li>
+      <li>النقل مع الكمبيوتر يتم على شبكتك المحلية أو على شبكة كفّ المباشرة المحمية بكلمة سر، ويحتاج موافقتك على الجوال لكل كمبيوتر.</li>
+      <li>الملفات المستلمة تنحفظ في جهازك فقط (الصور، الأفلام، الموسيقى، أو التنزيلات، داخل مجلد Kaff).</li>
+    </ul>
+
+    <h2>الكاميرا</h2>
+    <p>نستخدم الكاميرا عشان نتعرّف على حركة اليد (قبضة للإرسال، كف مفتوح للاستلام). الصور تتحلّل لحظياً داخل جهازك بنموذج MediaPipe، وما تنحفظ ولا تنرسل لأي مكان. الكاميرا ما تشتغل إلا في شاشات النقل، وتطفي لحالها.</p>
+
+    <h2>الموقع والأجهزة القريبة</h2>
+    <p>أندرويد وخدمات Google Play يطلبون إذن الموقع وإذن الأجهزة القريبة عشان البحث عن الأجهزة اللي جنبك عبر البلوتوث والواي فاي. كفّ ما يقرأ موقعك ولا يحفظه ولا يرسله أبداً.</p>
+
+    <h2>السجل</h2>
+    <p>كفّ يحفظ سجل النقل داخل جهازك فقط (أسماء الملفات، أحجامها، الوقت، واسم الجهاز الثاني) عشان تقدر ترجع لملفاتك. تقدر تمسحه في أي وقت من شاشة السجل، وينمسح كامل لما تحذف التطبيق.</p>
+
+    <h2>خدمات Google Play</h2>
+    <p>الاكتشاف والاتصال بين الجوالين يستخدم مكتبة Nearby Connections من خدمات Google Play على جهازك. تنطبق عليها <a href="https://policies.google.com/privacy" rel="noopener">سياسة خصوصية Google</a>.</p>
+
+    <h2>الأطفال</h2>
+    <p>كفّ ما يجمع أي بيانات من أي أحد، ومنهم الأطفال.</p>
+
+    <h2>التغييرات</h2>
+    <p>لو غيّرنا هذي السياسة بننشر النسخة الجديدة هنا مع تاريخ التحديث.</p>
+
+    <h2>تواصل معنا</h2>
+    <p>أي سؤال عن الخصوصية: <a href="mailto:privacy@kaff.app">privacy@kaff.app</a></p>
+  </article>
+
+  <article lang="en" dir="ltr">
+    <h1>Privacy Policy</h1>
+    <p class="updated">Last updated: November 16, 2026</p>
+    <p class="lead">Kaff moves your files directly between your own devices. There are no accounts, no servers, no ads and no trackers. Your files never pass through us, and we collect no data about you.</p>
+
+    <h2>Data we collect</h2>
+    <p>None. Kaff sends no data to us or to any third party. There is no sign-in, no usage analytics and no automatic crash reporting.</p>
+
+    <h2>Files you transfer</h2>
+    <ul>
+      <li>They travel straight from device to device over Bluetooth and local Wi-Fi, without the internet.</li>
+      <li>Phone-to-phone transfers are encrypted end to end (Google Nearby Connections, and Kaff's fast lane with AES-256-GCM).</li>
+      <li>Transfers with a computer run on your local network or on Kaff's password-protected direct network, and each computer must be approved on the phone.</li>
+      <li>Received files are saved only on your device (Pictures, Movies, Music or Downloads, in a Kaff folder).</li>
+    </ul>
+
+    <h2>Camera</h2>
+    <p>Kaff uses the camera to recognise hand gestures (a fist to send, an open palm to receive). Frames are analysed in real time on your device with Google MediaPipe; they are never stored or sent anywhere. The camera only runs on the transfer screens and turns itself off.</p>
+
+    <h2>Location and nearby devices</h2>
+    <p>Android and Google Play services require the location and nearby-devices permissions to discover devices around you over Bluetooth and Wi-Fi. Kaff never reads, stores or sends your location.</p>
+
+    <h2>History</h2>
+    <p>Kaff keeps a transfer history on your device only (file names, sizes, times and the other device's name) so you can get back to your files. You can clear it at any time from the History screen, and it is removed entirely when you uninstall the app.</p>
+
+    <h2>Google Play services</h2>
+    <p>Discovery and connection between phones use the Nearby Connections library of Google Play services on your device, which is covered by <a href="https://policies.google.com/privacy" rel="noopener">Google's Privacy Policy</a>.</p>
+
+    <h2>Children</h2>
+    <p>Kaff collects no data from anyone, including children.</p>
+
+    <h2>Changes</h2>
+    <p>If this policy changes, the new version will be published here with its date.</p>
+
+    <h2>Contact</h2>
+    <p>Privacy questions: <a href="mailto:privacy@kaff.app">privacy@kaff.app</a></p>
+  </article>
+
+  <footer><span lang="ar">© 2026 كفّ</span><span lang="en">© 2026 Kaff</span></footer>
+</div>
+<script>
+(() => {
+  const root = document.documentElement, btn = document.getElementById("lang");
+  const set = l => {
+    root.dataset.lang = l; root.lang = l; root.dir = l === "ar" ? "rtl" : "ltr";
+    btn.textContent = l === "ar" ? "English" : "العربية";
+    document.title = l === "ar" ? "سياسة الخصوصية · كفّ" : "Privacy Policy · Kaff";
+  };
+  let lang = new URLSearchParams(location.search).get("lang");
+  if (!lang) { try { lang = localStorage.getItem("kaff-lang"); } catch (e) { } }
+  set(lang === "en" ? "en" : "ar");
+  btn.addEventListener("click", () => { const l = root.dataset.lang === "ar" ? "en" : "ar"; set(l); try { localStorage.setItem("kaff-lang", l); } catch (e) { } });
+})();
+</script>
+</body>
+</html>

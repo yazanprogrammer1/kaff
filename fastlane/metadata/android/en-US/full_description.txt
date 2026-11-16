@@ -1,0 +1,36 @@
+Kaff turns file sharing into a hand gesture.
+
+Make a fist in front of your phone's camera, open your palm in front of the other phone, and your photos, videos, apps and files are there in seconds. No internet, no cable, no accounts.
+
+✋ Gesture transfer
+• A fist grabs the files; an open palm catches them.
+• Gestures are recognised on your phone itself, and the camera switches off on its own.
+• Prefer buttons? "Send" and "Accept" are always there.
+
+⚡ Fast, without internet
+• A direct Wi-Fi Direct link between the two phones.
+• Kaff's fast lane: 8 parallel, encrypted streams for big files.
+• Long episodes, videos and large apps move in moments.
+
+💻 With your computer, nothing to install
+• Open the address in the computer's browser, approve on the phone, done.
+• Pick on the phone and tap "Ready": files download on the computer by themselves, like a USB copy.
+• Drag and drop from the computer straight to your phone, with progress and time left.
+• Share text and links between phone and computer, both ways.
+• Kaff's own direct network works anywhere, even without a router.
+
+📤 From any app
+• Select in your gallery or any app, tap Share, choose Kaff, then "To another phone" or "To a computer".
+
+🗂️ A beautiful history
+• Open anything you sent or received in one tap: smooth-zoom photos, video, text and apps.
+
+🔒 Private by design
+• No servers, no accounts, no ads.
+• Files go straight between your devices, encrypted.
+• Camera frames are analysed on your device only; nothing is stored.
+
+✨ Arabic first
+• A full right-to-left Arabic interface with dark and light themes, plus English.
+
+Quick ways in: shake your phone, a Quick Settings tile, a floating bubble, or Standby mode.

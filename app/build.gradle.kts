@@ -1,3 +1,4 @@
+import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 // AGP 9 ships built-in Kotlin support, so org.jetbrains.kotlin.android is intentionally not applied.
@@ -24,14 +25,28 @@ android {
         androidResources.localeFilters += listOf("ar", "en")
     }
 
+    // The upload key lives outside the repo (~/.kaff-signing, or KAFF_SIGNING_PROPERTIES). Without it,
+    // release builds fall back to the debug key so CI and contributors can still build them.
+    val signingFile = (System.getenv("KAFF_SIGNING_PROPERTIES") ?: "${System.getProperty("user.home")}/.kaff-signing/keystore.properties")
+        .let(::file)
+    val upload = signingFile.takeIf { it.exists() }?.let { f -> Properties().apply { f.inputStream().use(::load) } }
+    signingConfigs {
+        if (upload != null) {
+            create("upload") {
+                storeFile = file(upload.getProperty("storeFile"))
+                storePassword = upload.getProperty("storePassword")
+                keyAlias = upload.getProperty("keyAlias")
+                keyPassword = upload.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // Signed with the debug key so the release build can be installed for R8 verification.
-            // Replace with a real signing config before publishing.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.findByName("upload") ?: signingConfigs.getByName("debug")
         }
     }
 
