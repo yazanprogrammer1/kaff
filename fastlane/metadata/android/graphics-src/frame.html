@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- Frames one raw screenshot for Google Play: ?shot=1_home&t=Title&s=Subtitle (1080 × 1920). -->
+<!-- Frames one raw screenshot for Google Play: ?lang=ar&shot=1_home&t=Title&s=Subtitle (1080 × 1920). -->
 <html dir="rtl"><meta charset="utf-8"><style>
 @font-face{font-family:T;src:url(../../../../app/src/main/res/font/tajawal_extrabold.ttf);font-weight:800}
 @font-face{font-family:T;src:url(../../../../app/src/main/res/font/tajawal_medium.ttf);font-weight:500}
@@ -19,7 +19,9 @@ p{font-size:40px;margin:22px 0 0;color:#CFE3D8;font-weight:500}
 <div class="phone"><div class="screen"><img id="img"></div><div class="notch"></div></div>
 <script>
 const q = new URLSearchParams(location.search);
-document.getElementById("img").src = "../screens-raw/" + q.get("shot") + ".png";
+const lang = q.get("lang") || "ar";
+document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+document.getElementById("img").src = "../screens-raw/" + lang + "/" + q.get("shot") + ".png";
 document.getElementById("t").innerHTML = q.get("t");
 document.getElementById("s").textContent = q.get("s");
 </script>

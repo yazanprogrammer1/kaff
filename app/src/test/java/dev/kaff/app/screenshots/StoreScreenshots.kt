@@ -20,6 +20,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
@@ -27,9 +28,9 @@ import org.robolectric.annotation.GraphicsMode
  * Google Play screenshots of the real screens, in Arabic, at 1080 × 2160 (Play allows at most 2:1).
  * Camera views are skipped (inspection mode), so no gallery or face ever ends up in a store image.
  *
- *   ./gradlew :app:testDebugUnitTest --tests "*StoreScreenshots*" -Pscreenshots=true
+ *   ./gradlew :app:testDebugUnitTest --tests "*StoreScreenshots*" -Pscreenshots=ar   (or =en)
  *
- * Images land in fastlane/metadata/android/screens-raw/; graphics-src/frame.html frames them.
+ * Images land in fastlane/metadata/android/screens-raw/<lang>/; graphics-src/frame_all.py frames them.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -39,15 +40,20 @@ class StoreScreenshots {
     @get:Rule
     val compose = createComposeRule()
 
+    private val language: String? = System.getProperty("kaff.screenshots")?.takeIf { it == "ar" || it == "en" }
+
     @Before
-    fun onlyWhenAsked() = assumeTrue(System.getProperty("kaff.screenshots") != null)
+    fun onlyWhenAsked() {
+        assumeTrue(language != null)
+        RuntimeEnvironment.setQualifiers("$language-w360dp-h720dp-xxhdpi")
+    }
 
     private fun shoot(name: String, content: @Composable () -> Unit) {
         compose.mainClock.autoAdvance = false
         compose.setContent { CompositionLocalProvider(LocalInspectionMode provides true) { content() } }
         // Let entrance animations finish; infinite ones (pulses) are frozen mid-way.
         compose.mainClock.advanceTimeBy(2_500)
-        compose.onRoot().captureRoboImage("../fastlane/metadata/android/screens-raw/$name.png")
+        compose.onRoot().captureRoboImage("../fastlane/metadata/android/screens-raw/$language/$name.png")
     }
 
     @Test fun home() = shoot("1_home") { HomePreview() }

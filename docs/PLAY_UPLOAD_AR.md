@@ -10,7 +10,8 @@
 | ملف التطبيق | `app/build/outputs/bundle/release/app-release.aab` |
 | الأيقونة 512 | `fastlane/metadata/android/ar/images/icon.png` |
 | صورة الواجهة 1024×500 | `fastlane/metadata/android/ar/images/featureGraphic.png` |
-| صور الشاشات | `fastlane/metadata/android/ar/images/phoneScreenshots/` |
+| صور الشاشات (عربي) | `fastlane/metadata/android/ar/images/phoneScreenshots/` |
+| صور الشاشات (إنجليزي) | `fastlane/metadata/android/en-US/images/phoneScreenshots/` |
 | النصوص | `fastlane/metadata/android/ar/` و `en-US/` |
 | سياسة الخصوصية | https://kaff.dpdns.org/privacy.html |
 | إيميل التواصل | kaff.app.support@gmail.com |
@@ -41,7 +42,7 @@
 - **App name / Short description / Full description**: انسخها من `fastlane/metadata/android/ar/` (title.txt, short_description.txt, full_description.txt).
 - ارفع **App icon** و **Feature graphic** وصور **Phone screenshots** من الجدول فوق.
 - **Category**: Tools. **Email**: kaff.app.support@gmail.com.
-- أضف ترجمة إنجليزية: **Manage translations** ← English (United States) ← انسخ من `en-US/`.
+- أضف ترجمة إنجليزية: **Manage translations** ← English (United States) ← انسخ النصوص من `en-US/`، وارفع صور الشاشات الإنجليزية من `en-US/images/phoneScreenshots/`.
 
 ## 4. أذونات حساسة (تطلب منك أثناء الرفع)
 - **Photo and video permissions** (READ_MEDIA_IMAGES/VIDEO): اختر أن الوظيفة الأساسية تحتاجها، والتبرير:
