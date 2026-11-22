@@ -31,7 +31,7 @@ description ≤ 4000, `changelogs/<versionCode>.txt`). Default language: Arabic 
 
 - Category: **Tools**. Tags: file transfer, sharing.
 - Contact email: `kaff.app.support@gmail.com` (also in `website/privacy.html`).
-- Privacy policy URL: `https://<github-user>.github.io/<repo>/privacy.html` once the site is live.
+- Privacy policy URL: `https://kaff.dpdns.org/privacy.html`.
 
 ## 3. App content
 

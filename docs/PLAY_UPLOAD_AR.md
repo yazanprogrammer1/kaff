@@ -12,7 +12,7 @@
 | صورة الواجهة 1024×500 | `fastlane/metadata/android/ar/images/featureGraphic.png` |
 | صور الشاشات | `fastlane/metadata/android/ar/images/phoneScreenshots/` |
 | النصوص | `fastlane/metadata/android/ar/` و `en-US/` |
-| سياسة الخصوصية | https://yazanprogrammer1.github.io/kaff/privacy.html |
+| سياسة الخصوصية | https://kaff.dpdns.org/privacy.html |
 | إيميل التواصل | kaff.app.support@gmail.com |
 
 ## 1. إنشاء التطبيق
