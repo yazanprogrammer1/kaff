@@ -19,3 +19,8 @@
 
 # Design source files (Claude Design export), kept local
 /docs/Kaff_Designs*.zip
+
+# Desktop app build output
+/desktop/build/
+/desktop/.gradle/
+/desktop/.kotlin/
