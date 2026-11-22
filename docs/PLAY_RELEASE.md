@@ -30,7 +30,7 @@ description ≤ 4000, `changelogs/<versionCode>.txt`). Default language: Arabic 
 | Phone screenshots | 2–8, 9:16 | to capture on a device |
 
 - Category: **Tools**. Tags: file transfer, sharing.
-- Contact email: **to fill** (also used in `website/privacy.html`, currently `privacy@kaff.app`).
+- Contact email: `kaff.app.support@gmail.com` (also in `website/privacy.html`).
 - Privacy policy URL: `https://<github-user>.github.io/<repo>/privacy.html` once the site is live.
 
 ## 3. App content
