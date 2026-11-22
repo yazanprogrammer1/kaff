@@ -24,7 +24,8 @@ class DesktopBeacon(
     private val scope: CoroutineScope,
     private val answer: () -> Answer?,
 ) {
-    data class Answer(val name: String, val port: Int, val token: String, val network: String?)
+    /** [id] is stable for this phone (random, never derived from hardware), unlike its editable name. */
+    data class Answer(val id: String, val name: String, val port: Int, val token: String, val network: String?)
 
     private var socket: DatagramSocket? = null
     private var job: Job? = null
@@ -66,6 +67,7 @@ class DesktopBeacon(
             val body = buildJsonObject {
                 put("app", "kaff")
                 put("v", 1)
+                put("id", reply.id)
                 put("name", reply.name)
                 put("port", reply.port)
                 put("path", "/${reply.token}/")

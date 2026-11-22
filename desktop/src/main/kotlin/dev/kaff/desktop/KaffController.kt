@@ -85,8 +85,9 @@ class KaffController(private val scope: CoroutineScope, val identity: Identity) 
     private suspend fun autoConnect() {
         discovery.phones.collect { phones ->
             if (_phase.value != Phase.Searching) return@collect
+            // By the phone's stable id: two phones may well carry the same name.
             val last = identity.lastPhone ?: return@collect
-            phones.firstOrNull { it.name == last }?.let { connect(it) }
+            phones.firstOrNull { it.memoryKey == last }?.let { connect(it) }
         }
     }
 
@@ -115,7 +116,7 @@ class KaffController(private val scope: CoroutineScope, val identity: Identity) 
                 return@launch
             }
             client = c
-            identity.lastPhone = phone.name
+            identity.lastPhone = phone.memoryKey
             _fast.value = hello.fast
             seenFiles.clear()
             lastClip = 0

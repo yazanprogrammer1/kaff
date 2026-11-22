@@ -18,13 +18,16 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
 /** A phone with Kaff's computer screen open, found on one of this computer's networks. */
-data class Phone(val name: String, val host: String, val port: Int, val path: String, val network: String?, val seenAtMs: Long) {
+data class Phone(val id: String?, val name: String, val host: String, val port: Int, val path: String, val network: String?, val seenAtMs: Long) {
+    /** How the app remembers this phone: its stable id, or its name for older phone builds. */
+    val memoryKey: String get() = id?.let { "id:$it" } ?: "name:$name"
+
     val base: String get() = "http://$host:$port$path"
     val onKaffNetwork: Boolean get() = host.startsWith("192.168.49.")
 }
 
 @Serializable
-private data class Answer(val app: String, val v: Int, val name: String, val port: Int, val path: String, val network: String? = null)
+private data class Answer(val app: String, val v: Int, val name: String, val port: Int, val path: String, val network: String? = null, val id: String? = null)
 
 /**
  * Asks every network "KAFF?" (UDP broadcast, port 4998) every two seconds and lists the phones that
@@ -62,7 +65,7 @@ class Discovery(private val scope: CoroutineScope) {
                     val answer = runCatching { json.decodeFromString(Answer.serializer(), String(packet.data, 0, packet.length)) }.getOrNull()
                     if (answer == null || answer.app != "kaff") continue
                     val host = packet.address.hostAddress
-                    val phone = Phone(answer.name, host, answer.port, answer.path, answer.network, System.currentTimeMillis())
+                    val phone = Phone(answer.id, answer.name, host, answer.port, answer.path, answer.network, System.currentTimeMillis())
                     // One phone session (its unique path) can answer on several of our networks: keep one
                     // card, preferring Kaff's direct network, and otherwise the address already shown.
                     val same = _phones.value.firstOrNull { it.path == phone.path }

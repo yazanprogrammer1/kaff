@@ -33,6 +33,13 @@ compose.desktop {
     application {
         mainClass = "dev.kaff.desktop.MainKt"
         javaHome = packagingJdk.get().metadata.installationPath.asFile.absolutePath
+        // Release packages run ProGuard: unused Compose, Material and Kotlin code is dropped.
+        buildTypes.release.proguard {
+            isEnabled.set(true)
+            obfuscate.set(false)
+            optimize.set(true)
+            configurationFiles.from(project.file("proguard-rules.pro"))
+        }
         nativeDistributions {
             targetFormats(TargetFormat.Msi)
             packageName = "Kaff"

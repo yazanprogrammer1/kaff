@@ -15,7 +15,7 @@ import org.junit.Test
 class DesktopBeaconTest {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val beacon = DesktopBeacon(scope) { DesktopBeacon.Answer("OPPO Reno13", 4999, "k7m2p", "DIRECT-KF-Kaff-23FA") }
+    private val beacon = DesktopBeacon(scope) { DesktopBeacon.Answer("p8x2q", "OPPO Reno13", 4999, "k7m2p", "DIRECT-KF-Kaff-23FA") }
 
     @After
     fun tearDown() {
@@ -42,7 +42,7 @@ class DesktopBeaconTest {
         beacon.start()
         Thread.sleep(200)
         val answer = ask(DesktopBeacon.QUESTION)!!
-        assertTrue(answer, answer.contains("\"name\":\"OPPO Reno13\"") && answer.contains("\"path\":\"/k7m2p/\"") && answer.contains("\"port\":4999"))
+        assertTrue(answer, answer.contains("\"id\":\"p8x2q\"") && answer.contains("\"name\":\"OPPO Reno13\"") && answer.contains("\"path\":\"/k7m2p/\"") && answer.contains("\"port\":4999"))
         assertTrue(ask("HELLO") == null)
     }
 }

@@ -170,7 +170,7 @@ class DesktopHost @Inject constructor(
 
     /** Answers the desktop app's "KAFF?" so it finds this phone by itself. */
     private val beacon = DesktopBeacon(scope) {
-        if (server == null) null else DesktopBeacon.Answer(device.name.value, port, token, _state.value.hotspot?.ssid)
+        if (server == null) null else DesktopBeacon.Answer(phoneId, device.name.value, port, token, _state.value.hotspot?.ssid)
     }
 
     /**
@@ -513,6 +513,15 @@ class DesktopHost @Inject constructor(
         }
     }
 
+    /**
+     * Lets a computer tell this phone apart from another with the same name (two identical models).
+     * Random and kept in app storage; it says nothing about the device or its owner.
+     */
+    private val phoneId: String by lazy {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        prefs.getString(KEY_PHONE_ID, null) ?: newPassphrase().also { prefs.edit { putString(KEY_PHONE_ID, it) } }
+    }
+
     private fun trustedDevices(): Set<String> =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getStringSet(KEY_TRUSTED, emptySet()).orEmpty()
 
@@ -837,6 +846,7 @@ class DesktopHost @Inject constructor(
         private const val KEY_PASS = "network_password"
         private const val KEY_COMPAT = "network_compatible"
         private const val KEY_TRUSTED = "trusted_computers"
+        private const val KEY_PHONE_ID = "phone_id"
         private const val KEY_TRUSTED_NAME = "trusted_name_"
         private const val MAX_CLIPS = 50
         private const val MAX_CLIP_CHARS = 20_000
