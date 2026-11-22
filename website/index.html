@@ -1,34 +1,248 @@
 <!doctype html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" data-lang="ar">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="dark">
-<title>كفّ · Kaff</title>
-<meta name="description" content="كفّ: انقل ملفاتك بحركة يدك بين الجوالات والكمبيوتر، بدون إنترنت.">
+<title>كفّ · انقل ملفاتك بحركة يدك</title>
+<meta name="description" content="كفّ: اقبض كفّك هنا وافتحها هناك. نقل الصور والفيديو والتطبيقات بين الجوالات والكمبيوتر، بسرعة وبدون إنترنت، ومشفّر.">
+<meta name="theme-color" content="#07100C">
+<meta property="og:title" content="كفّ · انقل ملفاتك بحركة يدك">
+<meta property="og:description" content="نقل الملفات بين الجوالات والكمبيوتر بحركة اليد، بدون إنترنت.">
+<meta property="og:image" content="https://yazanprogrammer1.github.io/kaff/assets/og.png">
+<meta property="og:type" content="website">
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;800&display=swap" rel="stylesheet">
-<style>
-* { box-sizing: border-box; }
-body { margin: 0; min-height: 100vh; display: grid; place-items: center; text-align: center; padding: 24px 16px;
-  background: radial-gradient(900px 600px at 50% 20%, #0E3321, #07100C 70%); color: #F2FAF5; font-family: Tajawal, system-ui, sans-serif; }
-img { width: 96px; height: 96px; border-radius: 26px; box-shadow: 0 24px 60px -20px #2BE38B; }
-h1 { font-size: clamp(44px, 10vw, 72px); margin: 22px 0 6px; font-weight: 800; }
-p { color: #CFE3D8; font-size: 20px; margin: 0 0 28px; }
-.pill { display: inline-block; padding: 10px 20px; border-radius: 999px; border: 1px solid #2BE38B66; color: #7FF0B8; background: #2BE38B14; }
-footer { margin-top: 40px; font-size: 14px; }
-a { color: #7FF0B8; }
-</style>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
 </head>
 <body>
-<main>
-  <img src="assets/icon.svg" alt="">
-  <h1>كفّ</h1>
-  <p>اقبض كفّك هنا… وافتحها هناك.<br>نقل الملفات بين الجوالات والكمبيوتر، بدون إنترنت.</p>
-  <span class="pill">قريباً على Google Play</span>
-  <footer><a href="privacy.html">سياسة الخصوصية</a> · <a href="privacy.html?lang=en">Privacy Policy</a></footer>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="hand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V11M11 10V4.5a1.5 1.5 0 0 1 3 0V11M14 10V6a1.5 1.5 0 0 1 3 0v8a6 6 0 0 1-6 6h-1a6 6 0 0 1-5-2.7L3.5 14a1.5 1.5 0 0 1 2.5-1.6L8 15"/></symbol>
+  <symbol id="bolt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="desk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4" width="19" height="12.5" rx="2.5"/><path d="M8.5 20.5h7M12 16.5v4"/></symbol>
+  <symbol id="lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8l7.6-4.4M8.2 13.2l7.6 4.4"/></symbol>
+  <symbol id="wifi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0M12 19.5h0"/></symbol>
+  <symbol id="text" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 6h14M5 11h14M5 16h9"/></symbol>
+  <symbol id="hist" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2"/></symbol>
+  <symbol id="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5" stroke-width="1.6"/><path d="M8 12.5l2.7 2.7L16.5 9"/></symbol>
+  <symbol id="play" viewBox="0 0 24 24"><path fill="currentColor" d="M4.2 2.6c-.3.3-.5.8-.5 1.4v16c0 .6.2 1.1.5 1.4l.1.1 9-9v-.2l-9-9-.1.3zm12 12.3L13.3 12l2.9-2.9 3.5 2c1 .6 1 1.5 0 2.1l-3.5 1.7zm-.1.1L13.3 12l-8.8 8.8c.3.3.9.4 1.5 0l10.1-5.8m0-6L6 3.2c-.6-.4-1.2-.3-1.5 0l8.8 8.8 2.8-3z"/></symbol>
+  <symbol id="win" viewBox="0 0 24 24"><path fill="currentColor" d="M3 5.1l7.4-1v7.2H3V5.1zm8.3-1.2L21 2.5v8.8h-9.7V3.9zM3 12.6h7.4v7.2L3 18.9v-6.3zm8.3 0H21v8.9l-9.7-1.4v-7.5z"/></symbol>
+  <symbol id="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="file" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="9.5" r="1.8"/><path d="M21 16l-5-5-9 9"/></symbol>
+</svg>
+
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="brand" href="#top"><img src="assets/icon.svg" alt=""><span lang="ar">كفّ</span><span lang="en">Kaff</span></a>
+    <nav class="links">
+      <a href="#how"><span lang="ar">كيف يشتغل</span><span lang="en">How it works</span></a>
+      <a href="#features"><span lang="ar">المزايا</span><span lang="en">Features</span></a>
+      <a href="#desktop"><span lang="ar">الكمبيوتر</span><span lang="en">Computer</span></a>
+      <a href="#faq"><span lang="ar">أسئلة</span><span lang="en">FAQ</span></a>
+    </nav>
+    <span class="spacer"></span>
+    <button class="chip" id="theme" type="button" aria-label="Theme"><svg><use href="#sun"/></svg></button>
+    <button class="chip" id="lang" type="button">EN</button>
+    <a class="btn primary" href="#download" style="padding:10px 18px;font-size:15px"><span lang="ar">تحميل</span><span lang="en">Download</span></a>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <div class="wrap">
+      <div>
+        <span class="eyebrow"><i></i><span lang="ar">بدون إنترنت · بدون كيبل · بدون حسابات</span><span lang="en">No internet · no cable · no accounts</span></span>
+        <h1 class="title">
+          <span lang="ar">اقبض كفّك هنا…<br><em>وافتحها هناك.</em></span>
+          <span lang="en">Grab it here…<br><em>open your hand there.</em></span>
+        </h1>
+        <p class="lede">
+          <span lang="ar">كفّ ينقل صورك وفيديوهاتك وتطبيقاتك بين الجوالات والكمبيوتر بحركة يد. مباشرة، بسرعة الواي فاي، ومشفّرة من جهاز لجهاز.</span>
+          <span lang="en">Kaff moves your photos, videos and apps between phones and computers with a hand gesture. Direct, at Wi-Fi speed, encrypted from device to device.</span>
+        </p>
+        <div class="cta">
+          <a class="btn primary" data-play href="#download"><svg><use href="#play"/></svg><span><small lang="ar">حمّله من</small><small lang="en">Get it on</small><b>Google Play</b></span></a>
+          <a class="btn ghost" data-win href="#download"><svg><use href="#win"/></svg><span><small lang="ar">برنامج</small><small lang="en">App for</small><b>Windows</b></span></a>
+        </div>
+        <div class="trust">
+          <span><svg><use href="#lock"/></svg><span lang="ar">مشفّر</span><span lang="en">Encrypted</span></span>
+          <span><svg><use href="#wifi"/></svg><span lang="ar">بدون إنترنت</span><span lang="en">Offline</span></span>
+          <span><svg><use href="#hand"/></svg><span lang="ar">بدون لمس الشاشة</span><span lang="en">Touch-free</span></span>
+        </div>
+      </div>
+      <div class="stage" aria-hidden="true">
+        <div class="ring"></div>
+        <div class="phone b"><div class="screen"><span class="notch"></span>
+          <div class="scr-title" lang="ar">جاهز تستلم</div><div class="scr-title" lang="en">Ready to receive</div>
+          <div class="scr-sub" lang="ar">افتح كفّك</div><div class="scr-sub" lang="en">Open your palm</div>
+          <div class="hand-badge"><svg style="color:#07100C"><use href="#hand"/></svg></div>
+          <div class="mini-bar"><i></i></div><div class="mini-cap" lang="ar">يستلم…</div><div class="mini-cap" lang="en">Receiving…</div>
+        </div></div>
+        <div class="flyer"><svg style="color:#07100C"><use href="#file"/></svg></div>
+        <div class="phone a"><div class="screen"><span class="notch"></span>
+          <div class="scr-title" lang="ar">٣ ملفات جاهزة</div><div class="scr-title" lang="en">3 files ready</div>
+          <div class="scr-sub" lang="ar">اقبض كفّك</div><div class="scr-sub" lang="en">Make a fist</div>
+          <div class="hand-badge"><svg style="color:#07100C"><use href="#hand"/></svg></div>
+          <div class="files"><b></b><b></b><b></b></div>
+          <div class="mini-bar"><i></i></div><div class="mini-cap" lang="ar">يرسل…</div><div class="mini-cap" lang="en">Sending…</div>
+        </div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="wrap">
+      <div class="head center reveal">
+        <div class="kicker"><span lang="ar">كيف يشتغل</span><span lang="en">How it works</span></div>
+        <h2><span lang="ar">ثلاث خطوات. ولا شي ثاني.</span><span lang="en">Three steps. Nothing else.</span></h2>
+      </div>
+      <div class="steps">
+        <div class="step reveal"><div class="n">1</div>
+          <h3><span lang="ar">اختر</span><span lang="en">Pick</span></h3>
+          <p><span lang="ar">صور، فيديو، تطبيقات، أو أي ملف. أو شارك من أي تطبيق واختر كفّ.</span><span lang="en">Photos, videos, apps or any file. Or share from any app and choose Kaff.</span></p>
+          <svg class="big"><use href="#file"/></svg></div>
+        <div class="step reveal"><div class="n">2</div>
+          <h3><span lang="ar">اقبض</span><span lang="en">Grab</span></h3>
+          <p><span lang="ar">اقبض كفّك أمام الكاميرا. الجوال الثاني يحس فيك على طول.</span><span lang="en">Make a fist at the camera. The other phone notices right away.</span></p>
+          <svg class="big"><use href="#hand"/></svg></div>
+        <div class="step reveal"><div class="n">3</div>
+          <h3><span lang="ar">افتح</span><span lang="en">Release</span></h3>
+          <p><span lang="ar">افتح كفّك أمام الجوال الثاني، والملفات توصل وتنحفظ في المعرض.</span><span lang="en">Open your palm at the other phone; files land and save to the gallery.</span></p>
+          <svg class="big"><use href="#bolt"/></svg></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="wrap">
+      <div class="head reveal">
+        <div class="kicker"><span lang="ar">المزايا</span><span lang="en">Features</span></div>
+        <h2><span lang="ar">كل اللي تحتاجه للنقل.<br>بلمسة فخامة.</span><span lang="en">Everything for moving files.<br>Beautifully done.</span></h2>
+      </div>
+      <div class="bento">
+        <div class="card feature span4 reveal"><div class="ic"><svg><use href="#bolt"/></svg></div>
+          <h3><span lang="ar">سريع بدون إنترنت</span><span lang="en">Fast without internet</span></h3>
+          <p><span lang="ar">اتصال Wi-Fi Direct مباشر بين الجوالين، ومسار كفّ السريع بقنوات متوازية للملفات الكبيرة. الحلقات الطويلة والتطبيقات الكبيرة تنتقل في وقت قصير.</span><span lang="en">A direct Wi-Fi Direct link between the phones, and Kaff's fast lane with parallel streams for big files. Long episodes and large apps move in moments.</span></p>
+          <div class="stat"><b dir="ltr">12.5+</b><span lang="ar">م.ب/ث بين جوالين (مقاسة)</span><span lang="en">MB/s phone to phone (measured)</span></div>
+        </div>
+        <div class="card span2 reveal"><div class="ic"><svg><use href="#lock"/></svg></div>
+          <h3><span lang="ar">مشفّر وخاص</span><span lang="en">Encrypted, private</span></h3>
+          <p><span lang="ar">بدون سيرفرات ولا حسابات ولا إعلانات. الملفات تروح من جهاز لجهاز بس.</span><span lang="en">No servers, accounts or ads. Files go device to device only.</span></p></div>
+        <div class="card span2 reveal"><div class="ic"><svg><use href="#share"/></svg></div>
+          <h3><span lang="ar">من أي تطبيق</span><span lang="en">From any app</span></h3>
+          <p><span lang="ar">حدّد في المعرض، شارك، اختر كفّ، وبعدها جوال أو كمبيوتر.</span><span lang="en">Select in your gallery, share, pick Kaff, then a phone or a computer.</span></p></div>
+        <div class="card span2 reveal"><div class="ic"><svg><use href="#text"/></svg></div>
+          <h3><span lang="ar">نصوص وروابط</span><span lang="en">Text and links</span></h3>
+          <p><span lang="ar">الصق في الجوال، يطلع في الكمبيوتر. والعكس. بثانية.</span><span lang="en">Paste on the phone, it shows on the computer, and back, in a second.</span></p></div>
+        <div class="card span2 reveal"><div class="ic"><svg><use href="#hist"/></svg></div>
+          <h3><span lang="ar">سجل أنيق</span><span lang="en">Beautiful history</span></h3>
+          <p><span lang="ar">افتح أي شي وصلك أو أرسلته: صور بتكبير سلس، فيديو، نصوص، وتطبيقات.</span><span lang="en">Open anything you sent or received: smooth-zoom photos, video, text, apps.</span></p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="desktop">
+    <div class="wrap showcase">
+      <div class="reveal">
+        <div class="kicker"><span lang="ar">الكمبيوتر</span><span lang="en">Computer</span></div>
+        <h2><span lang="ar">مع الكمبيوتر…<br>مثل وصلة USB، بدون وصلة.</span><span lang="en">With your computer…<br>like USB, minus the cable.</span></h2>
+        <p class="sub"><span lang="ar">اختر من الجوال واضغط «جاهز»، والملفات تنزل على الكمبيوتر لحالها. ومن الكمبيوتر اسحب وأفلت.</span><span lang="en">Pick on the phone and tap "Ready": files download on the computer by themselves. From the computer, drag and drop.</span></p>
+        <ul class="ticks">
+          <li><svg><use href="#check"/></svg><span lang="ar">برنامج Windows يلقى جوالك لحاله ويتصل.</span><span lang="en">The Windows app finds your phone and connects by itself.</span></li>
+          <li><svg><use href="#check"/></svg><span lang="ar">أو من أي متصفح، بدون تثبيت أي شي.</span><span lang="en">Or from any browser, with nothing to install.</span></li>
+          <li><svg><use href="#check"/></svg><span lang="ar">شبكة كفّ المباشرة: تشتغل حتى بدون راوتر.</span><span lang="en">Kaff's direct network works even without a router.</span></li>
+          <li><svg><use href="#check"/></svg><span lang="ar">موافقتك على كل كمبيوتر يتصل، من الجوال.</span><span lang="en">You approve every computer from the phone.</span></li>
+        </ul>
+      </div>
+      <div class="laptop reveal" aria-hidden="true">
+        <div class="lid"><div class="browser">
+          <div class="bar"><i></i><i></i><i></i><span>kaff · 192.168.49.1</span></div>
+          <div class="page">
+            <div class="pane"><h4>من الجوال · 6 ملفات</h4><div class="grid3"><b></b><b></b><b></b><b></b><b></b><b></b></div></div>
+            <div class="pane"><h4>إلى الجوال</h4><div class="drop">اسحب الملفات هنا</div><div class="upl">video_4k.mp4<i></i></div></div>
+          </div>
+        </div></div>
+        <div class="base"></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="band reveal">
+        <div class="kicker"><span lang="ar">الخصوصية</span><span lang="en">Privacy</span></div>
+        <h2><span lang="ar">ملفاتك ما تمر علينا. أبداً.</span><span lang="en">Your files never pass through us.</span></h2>
+        <p class="sub"><span lang="ar">كفّ ما عنده سيرفرات يرسل لها شي. حتى الكاميرا تتحلّل داخل جوالك وما ينحفظ منها شي.</span><span lang="en">Kaff has no servers to send anything to. Even the camera is analysed on your phone, and nothing is kept.</span></p>
+        <div class="row">
+          <div class="pill-card"><b lang="ar">بدون حسابات</b><b lang="en">No accounts</b><span lang="ar">افتح وانقل.</span><span lang="en">Open and transfer.</span></div>
+          <div class="pill-card"><b lang="ar">بدون إعلانات</b><b lang="en">No ads</b><span lang="ar">ولا تتبّع.</span><span lang="en">No tracking.</span></div>
+          <div class="pill-card"><b lang="ar">تشفير كامل</b><b lang="en">Encrypted</b><span lang="ar">من جهاز لجهاز.</span><span lang="en">Device to device.</span></div>
+          <div class="pill-card"><b lang="ar">داخل جهازك</b><b lang="en">On-device</b><span lang="ar">التعرّف على اليد.</span><span lang="en">Hand recognition.</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="download" class="download">
+    <div class="wrap">
+      <div class="head center reveal">
+        <div class="kicker"><span lang="ar">التحميل</span><span lang="en">Download</span></div>
+        <h2><span lang="ar">جاهز تجرّب السحر؟</span><span lang="en">Ready for a little magic?</span></h2>
+        <p class="sub"><span lang="ar">مجاني. على الجوال وعلى الكمبيوتر.</span><span lang="en">Free, on your phone and your computer.</span></p>
+      </div>
+      <div class="dl">
+        <div class="card feature reveal">
+          <div class="ic"><svg><use href="#hand"/></svg></div>
+          <h3><span lang="ar">كفّ للأندرويد</span><span lang="en">Kaff for Android</span></h3>
+          <p><span lang="ar">نقل بحركة اليد بين الجوالات، ومع الكمبيوتر.</span><span lang="en">Gesture transfer between phones, and with computers.</span></p>
+          <a class="btn primary" data-play href="#"><svg><use href="#play"/></svg><span><small lang="ar">حمّله من</small><small lang="en">Get it on</small><b>Google Play</b></span></a>
+          <span class="req"><span lang="ar">أندرويد 8 أو أحدث · كاميرا أمامية</span><span lang="en">Android 8 or later · front camera</span></span>
+        </div>
+        <div class="card reveal">
+          <div class="ic"><svg><use href="#desk"/></svg></div>
+          <h3><span lang="ar">كفّ للكمبيوتر</span><span lang="en">Kaff for Windows</span></h3>
+          <p><span lang="ar">يلقى جوالك لحاله، وينقل بالسحب والإفلات.</span><span lang="en">Finds your phone by itself; drag and drop to transfer.</span></p>
+          <a class="btn ghost" data-win href="#"><svg><use href="#win"/></svg><span><small lang="ar">حمّل لـ</small><small lang="en">Download for</small><b>Windows</b></span></a>
+          <span class="req"><span lang="ar">Windows 10 أو 11 · واي فاي</span><span lang="en">Windows 10 or 11 · Wi-Fi</span></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq">
+    <div class="wrap">
+      <div class="head center reveal">
+        <div class="kicker"><span lang="ar">أسئلة</span><span lang="en">FAQ</span></div>
+        <h2><span lang="ar">عندك سؤال؟</span><span lang="en">Questions?</span></h2>
+      </div>
+      <div class="faq">
+        <details class="reveal"><summary><span lang="ar">هل يحتاج إنترنت؟</span><span lang="en">Does it need the internet?</span></summary>
+          <p><span lang="ar">لا. يكفي الواي فاي والبلوتوث شغّالين في الجوالين، حتى بدون أي شبكة.</span><span lang="en">No. Wi-Fi and Bluetooth just need to be switched on, even with no network around.</span></p></details>
+        <details class="reveal"><summary><span lang="ar">ليش يطلب إذن الموقع؟</span><span lang="en">Why the location permission?</span></summary>
+          <p><span lang="ar">أندرويد يطلبه للبحث عن الأجهزة القريبة. كفّ ما يقرأ موقعك ولا يحفظه.</span><span lang="en">Android requires it to discover nearby devices. Kaff never reads or stores your location.</span></p></details>
+        <details class="reveal"><summary><span lang="ar">هل الكاميرا تصوّرني؟</span><span lang="en">Does the camera record me?</span></summary>
+          <p><span lang="ar">لا. تتعرّف على شكل اليد لحظياً داخل الجوال، وما ينحفظ ولا ينرسل شي.</span><span lang="en">No. It recognises your hand shape in real time on the phone; nothing is stored or sent.</span></p></details>
+        <details class="reveal"><summary><span lang="ar">أقدر أرسل بدون حركة اليد؟</span><span lang="en">Can I send without the gesture?</span></summary>
+          <p><span lang="ar">أكيد. زر «إرسال» و«قبول» موجودين دائماً.</span><span lang="en">Of course. "Send" and "Accept" buttons are always there.</span></p></details>
+        <details class="reveal"><summary><span lang="ar">ليش النقل بطيء أحياناً؟</span><span lang="en">Why is it sometimes slow?</span></summary>
+          <p><span lang="ar">غالباً الواي فاي مقفّل في واحد من الجوالين، فيصير النقل على البلوتوث. كفّ ينبّهك ويوديك لزر التشغيل.</span><span lang="en">Usually Wi-Fi is off on one phone, so the transfer falls back to Bluetooth. Kaff tells you and takes you to the switch.</span></p></details>
+      </div>
+    </div>
+  </section>
 </main>
+
+<footer>
+  <div class="wrap">
+    <a class="brand" href="#top" style="font-size:18px"><img src="assets/icon.svg" alt="" style="width:30px;height:30px"><span lang="ar">كفّ</span><span lang="en">Kaff</span></a>
+    <span class="spacer"></span>
+    <a href="privacy.html"><span lang="ar">سياسة الخصوصية</span><span lang="en">Privacy</span></a>
+    <a href="mailto:kaff.app.support@gmail.com"><span lang="ar">تواصل معنا</span><span lang="en">Contact</span></a>
+    <span>© 2026</span>
+  </div>
+</footer>
+
+<script src="assets/site.js" defer></script>
 </body>
 </html>
