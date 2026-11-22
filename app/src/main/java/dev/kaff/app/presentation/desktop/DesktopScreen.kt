@@ -602,7 +602,7 @@ private const val MAX_CLIP_CHARS = 20_000
 private fun Computers(clients: List<DesktopClient>) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         clients.forEach { client ->
-            val name = listOf(client.browser, client.os).filter { it.isNotBlank() }.joinToString(" · ")
+            val name = client.label
             StatusPill(
                 stringResource(if (client.viaKaff) R.string.desktop_connected_kaff else R.string.desktop_connected_wifi, name),
                 icon = if (client.viaKaff) KaffIcons.Bolt else KaffIcons.Wifi,
@@ -812,7 +812,7 @@ private fun ApprovalDialog(client: DesktopClient, onAllow: () -> Unit, onDeny: (
         title = { Text(stringResource(R.string.desktop_approve_title), textAlign = TextAlign.Center) },
         text = {
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                val name = listOf(client.browser, client.os).filter { it.isNotBlank() }.joinToString(" · ")
+                val name = client.label
                 Text(name, style = MaterialTheme.typography.titleMedium, color = c.text)
                 Text(client.address, style = MaterialTheme.typography.bodyMedium.copy(textDirection = TextDirection.Ltr), color = c.textMuted)
                 Text(

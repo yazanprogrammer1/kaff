@@ -50,7 +50,18 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.resume
 
 /** A computer browser that asked to connect. */
-data class DesktopClient(val address: String, val browser: String, val os: String, val viaKaff: Boolean = false)
+data class DesktopClient(
+    val address: String,
+    val browser: String,
+    val os: String,
+    val viaKaff: Boolean = false,
+    /** Stable id sent by the Kaff desktop app; null for a plain browser. */
+    val device: String? = null,
+    /** The computer's own name, from the desktop app. */
+    val computerName: String? = null,
+) {
+    val label: String get() = computerName ?: listOf(browser, os).filter(String::isNotBlank).joinToString(" · ")
+}
 
 /** A file the phone sent to the computer with "ready"; the page downloads it on its own. */
 data class DesktopOutgoing(
@@ -157,6 +168,11 @@ class DesktopHost @Inject constructor(
     private var p2pChannel: WifiP2pManager.Channel? = null
     private val page by lazy { context.assets.open("desktop/index.html").use { it.readBytes() } }
 
+    /** Answers the desktop app's "KAFF?" so it finds this phone by itself. */
+    private val beacon = DesktopBeacon(scope) {
+        if (server == null) null else DesktopBeacon.Answer(device.name.value, port, token, _state.value.hotspot?.ssid)
+    }
+
     /**
      * Sends [items] to the computer as one batch: they show up on the page and download there by
      * themselves. Works before the screen opens too (share sheet), they wait for the computer.
@@ -195,6 +211,7 @@ class DesktopHost @Inject constructor(
             return
         }
         server = created
+        beacon.start()
         // Keeps text and files queued from the share sheet before the screen opened.
         _state.value = DesktopState(
             running = true,
@@ -206,6 +223,7 @@ class DesktopHost @Inject constructor(
     }
 
     fun stop() {
+        beacon.stop()
         server?.stop()
         server = null
         decisions.values.forEach { it.complete(false) }
@@ -250,8 +268,13 @@ class DesktopHost @Inject constructor(
         }
     }
 
-    fun decide(client: DesktopClient, allow: Boolean) {
+    /**
+     * [remember] trusts a desktop app's computer from now on: it connects without asking next time.
+     * Browsers have no stable id, so they are approved for this session only.
+     */
+    fun decide(client: DesktopClient, allow: Boolean, remember: Boolean = true) {
         if (allow) approvedAddresses += client.address
+        if (allow && remember && client.device != null) trust(client)
         decisions.remove(client.address)?.complete(allow)
         _state.update {
             it.copy(
@@ -490,6 +513,25 @@ class DesktopHost @Inject constructor(
         }
     }
 
+    private fun trustedDevices(): Set<String> =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getStringSet(KEY_TRUSTED, emptySet()).orEmpty()
+
+    private fun trust(client: DesktopClient) {
+        val id = client.device ?: return
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit {
+            putStringSet(KEY_TRUSTED, trustedDevices() + id)
+            putString("$KEY_TRUSTED_NAME$id", client.label)
+        }
+    }
+
+    /** Forgets every trusted computer; each must be approved again. */
+    fun forgetComputers() {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit {
+            trustedDevices().forEach { remove("$KEY_TRUSTED_NAME$it") }
+            remove(KEY_TRUSTED)
+        }
+    }
+
     private fun savedNetwork(): HotspotInfo {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val ssid = prefs.getString(KEY_SSID, null) ?: ("DIRECT-KF-Kaff-" + newToken().take(4).uppercase())
@@ -702,10 +744,17 @@ class DesktopHost @Inject constructor(
     private inner class Gate : DesktopServer.Gate {
         override fun isApproved(client: String): Boolean = client in approvedAddresses
 
-        override suspend fun request(client: String, agent: String, timeoutMs: Long): Boolean? {
-            val decision = decisions.getOrPut(client) { CompletableDeferred() }
+        override suspend fun request(client: String, agent: String, timeoutMs: Long, device: String?, computerName: String?): Boolean? {
             val (browser, os) = describeAgent(agent)
-            _state.update { if (it.pending == null) it.copy(pending = DesktopClient(client, browser, os, viaKaff(client))) else it }
+            val asking = DesktopClient(client, browser, os, viaKaff(client), device, computerName)
+            if (device != null && device in trustedDevices()) {
+                // Approved before on this phone: straight in, like a paired Bluetooth device.
+                approvedAddresses += client
+                _state.update { it.copy(approved = it.approved.filterNot { c -> c.address == client } + asking) }
+                return true
+            }
+            val decision = decisions.getOrPut(client) { CompletableDeferred() }
+            _state.update { if (it.pending == null) it.copy(pending = asking) else it }
             val result = withTimeoutOrNull(timeoutMs) { decision.await() }
             if (result != true) {
                 decisions.remove(client, decision)
@@ -787,6 +836,8 @@ class DesktopHost @Inject constructor(
         private const val KEY_SSID = "network_name"
         private const val KEY_PASS = "network_password"
         private const val KEY_COMPAT = "network_compatible"
+        private const val KEY_TRUSTED = "trusted_computers"
+        private const val KEY_TRUSTED_NAME = "trusted_name_"
         private const val MAX_CLIPS = 50
         private const val MAX_CLIP_CHARS = 20_000
 
@@ -798,6 +849,7 @@ class DesktopHost @Inject constructor(
         /** "Chrome" / "Windows" from a user agent, for the approval prompt. */
         fun describeAgent(agent: String): Pair<String, String> {
             val browser = when {
+                "KaffDesktop/" in agent -> "Kaff"
                 "Edg/" in agent -> "Edge"
                 "OPR/" in agent -> "Opera"
                 "Firefox/" in agent -> "Firefox"

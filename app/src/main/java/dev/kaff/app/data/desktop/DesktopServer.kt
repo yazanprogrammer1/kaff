@@ -86,7 +86,7 @@ class DesktopServer(
         fun isApproved(client: String): Boolean
 
         /** Asks the phone's user; suspends until they answer or [timeoutMs] passes (null). */
-        suspend fun request(client: String, agent: String, timeoutMs: Long): Boolean?
+        suspend fun request(client: String, agent: String, timeoutMs: Long, device: String? = null, computerName: String? = null): Boolean?
 
         /** A download or upload finished in [durationMs], for the phone's activity list and speed log. */
         fun served(client: String, name: String, bytes: Long, upload: Boolean, durationMs: Long)
@@ -257,7 +257,14 @@ class DesktopServer(
 
     private fun hello(request: Request, client: String, out: OutputStream) {
         val approved = approved(request, client) || runBlocking {
-            gate.request(client, request.headers["user-agent"].orEmpty(), HELLO_WAIT_MS)
+            gate.request(
+                client,
+                request.headers["user-agent"].orEmpty(),
+                HELLO_WAIT_MS,
+                // The Kaff desktop app sends a stable id and the computer's name, so the phone can trust it once.
+                device = request.headers["x-kaff-device"]?.takeIf { DEVICE_ID.matches(it) },
+                computerName = request.headers["x-kaff-name"]?.let(::decode)?.take(60),
+            )
         } == true
         val key = if (approved) {
             request.headers["x-kaff-key"]?.takeIf { it in sessionKeys } ?: newSessionKey().also { sessionKeys += it }
@@ -464,6 +471,7 @@ class DesktopServer(
         private const val SOCKET_BUFFER = 4 * 1024 * 1024
         private const val REPORT_STEP = 512 * 1024L
         private const val MAX_CLIP_BYTES = 64 * 1024L
+        private val DEVICE_ID = Regex("^[0-9a-f]{32}$")
         private val IP_LITERAL = Regex("""^(\d{1,3}\.){3}\d{1,3}$|^[0-9a-fA-F:]+$""")
         private val REASONS = mapOf(
             200 to "OK", 301 to "Moved Permanently", 400 to "Bad Request", 403 to "Forbidden", 404 to "Not Found", 410 to "Gone",

@@ -58,7 +58,7 @@ class DesktopServerTest {
             },
             gate = object : DesktopServer.Gate {
                 override fun isApproved(client: String) = client in approved
-                override suspend fun request(client: String, agent: String, timeoutMs: Long): Boolean? =
+                override suspend fun request(client: String, agent: String, timeoutMs: Long, device: String?, computerName: String?): Boolean? =
                     approve.also { if (it == true) approved += client }
                 override fun served(client: String, name: String, bytes: Long, upload: Boolean, durationMs: Long) = Unit
             },
