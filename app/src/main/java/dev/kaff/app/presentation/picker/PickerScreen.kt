@@ -612,7 +612,7 @@ private val previewItems = listOf(
 @Preview(name = "Picker · RTL", locale = "ar", device = "spec:width=390dp,height=844dp")
 @Preview(name = "Picker · EN", locale = "en", device = "spec:width=390dp,height=844dp")
 @Composable
-private fun PickerPreview() {
+internal fun PickerPreview() {
     KaffTheme(darkTheme = true) {
         PickerScreen(
             PickerUiState(items = previewItems, basket = previewItems.take(2) + PickItem("content://5", "Report.pdf", 3_100_000, "application/pdf", PickSource.Document)),

@@ -416,7 +416,7 @@ private val previewOffer = ProtocolMessage.Offer(
 
 @Preview(name = "Receive · offer · RTL", locale = "ar", device = "spec:width=390dp,height=844dp")
 @Composable
-private fun ReceiveOfferPreview() {
+internal fun ReceiveOfferPreview() {
     KaffTheme(darkTheme = true) {
         ReceiveScreen(
             ReceiveUiState(

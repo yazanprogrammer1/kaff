@@ -835,7 +835,7 @@ private const val MAX_ROWS = 6
 
 @Preview(name = "Desktop · RTL", locale = "ar", device = "spec:width=390dp,height=900dp")
 @Composable
-private fun DesktopPreview() {
+internal fun DesktopPreview() {
     KaffTheme(darkTheme = true) {
         DesktopScreen(
             DesktopUiState(

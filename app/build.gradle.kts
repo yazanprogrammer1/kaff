@@ -73,6 +73,12 @@ android {
 
     testOptions {
         unitTests.isReturnDefaultValues = true
+        // Store screenshots render the real composables under Robolectric (see StoreScreenshots).
+        unitTests.isIncludeAndroidResources = true
+        unitTests.all { test ->
+            test.systemProperty("roborazzi.test.record", "true")
+            providers.gradleProperty("screenshots").orNull?.let { test.systemProperty("kaff.screenshots", it) }
+        }
     }
 }
 
@@ -142,6 +148,11 @@ dependencies {
     testImplementation(libs.mockk)
     testImplementation(libs.turbine)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
 
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

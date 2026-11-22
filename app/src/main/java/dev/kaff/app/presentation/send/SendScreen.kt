@@ -58,6 +58,7 @@ import dev.kaff.app.R
 import dev.kaff.app.core.util.durationText
 import dev.kaff.app.core.util.fileSizeText
 import dev.kaff.app.core.util.speedText
+import dev.kaff.app.domain.model.LinkQuality
 import dev.kaff.app.domain.model.FileKind
 import dev.kaff.app.domain.model.FileMeta
 import dev.kaff.app.domain.model.GestureState
@@ -493,7 +494,7 @@ private val previewPeer = Peer("B", "Samsung A54")
 
 @Preview(name = "Send · armed basket · RTL", locale = "ar", device = "spec:width=390dp,height=844dp")
 @Composable
-private fun SendArmedPreview() {
+internal fun SendArmedPreview() {
     KaffTheme(darkTheme = true) {
         SendScreen(
             SendUiState(
@@ -508,17 +509,18 @@ private fun SendArmedPreview() {
 
 @Preview(name = "Send · transferring · EN", locale = "en", device = "spec:width=390dp,height=844dp")
 @Composable
-private fun SendTransferPreview() {
+internal fun SendTransferPreview() {
     KaffTheme(darkTheme = true) {
         SendScreen(
             SendUiState(
                 session = SendState.Transferring(
-                    previewPeer, "4721", "t", 24_700_000, SystemClock.elapsedRealtime() - 2_000,
+                    previewPeer, "4721", "t", 24_700_000, SystemClock.elapsedRealtime() - 1_100,
                     payloadIds = listOf(1, 2, 3, 4, 5),
                     sentBytes = mapOf(1L to 3_200_000L, 2L to 2_900_000L, 3L to 3_100_000L, 4L to 4_700_000L),
                     completed = setOf(1, 2, 3),
                 ),
                 files = previewBasket,
+                linkQuality = LinkQuality.High,
             ),
             analyzer = { it.close() },
             actions = SendActions(),

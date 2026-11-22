@@ -186,7 +186,7 @@ private fun DestinationCard(icon: ImageVector, title: String, body: String, prim
 
 @Preview(name = "Share · RTL", locale = "ar", device = "spec:width=390dp,height=844dp")
 @Composable
-private fun SharePreview() {
+internal fun SharePreview() {
     val items = List(4) { PickItem("content://x/$it", "IMG_$it.jpg", 2_400_000L, "image/jpeg", PickSource.Media) }
     KaffTheme(darkTheme = true) { ShareScreen(ShareUiState(false, items), {}, {}, {}) }
 }

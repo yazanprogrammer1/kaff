@@ -167,7 +167,7 @@ fun DoneScreen(
 @Preview(name = "Done · basket · RTL", locale = "ar", device = "spec:width=390dp,height=900dp")
 @Preview(name = "Done · basket · EN", locale = "en", device = "spec:width=390dp,height=900dp")
 @Composable
-private fun DonePreview() {
+internal fun DonePreview() {
     val image = FileMeta("IMG_2841.jpg", 3_200_000, "image/jpeg", "00")
     val video = FileMeta("VID_0193.mp4", 12_400_000, "video/mp4", "01")
     val pdf = FileMeta("Project_Report.pdf", 3_100_000, "application/pdf", "02")
@@ -182,8 +182,8 @@ private fun DonePreview() {
                     SavedFile("content://3", video, SaveLocation.Gallery),
                     SavedFile("content://4", pdf, SaveLocation.Downloads),
                 ),
-                TransferStats(21_900_000, 600),
-                skipped = setOf(4),
+                // ~12.5 MB/s: the speed measured phone to phone over Wi-Fi Direct (also used for store images).
+                TransferStats(21_900_000, 1_750),
             ),
             onOpenFile = {},
             onOpenFolder = {},

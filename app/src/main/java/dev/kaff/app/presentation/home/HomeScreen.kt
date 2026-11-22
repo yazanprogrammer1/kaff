@@ -177,7 +177,7 @@ private fun WakeChip(icon: ImageVector, label: String, onClick: () -> Unit, modi
 @Preview(name = "Home · RTL", locale = "ar", device = "spec:width=390dp,height=844dp")
 @Preview(name = "Home · EN", locale = "en", device = "spec:width=390dp,height=844dp")
 @Composable
-private fun HomePreview() {
+internal fun HomePreview() {
     KaffTheme(darkTheme = true) { HomeScreen(HomeUiState(), {}, {}, {}, {}, {}) }
 }
 
