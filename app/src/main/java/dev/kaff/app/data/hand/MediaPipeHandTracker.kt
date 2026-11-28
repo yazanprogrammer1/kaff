@@ -93,6 +93,11 @@ private class MediaPipeHandTracker(context: Context) : HandTracker {
     } catch (e: RuntimeException) {
         Log.w(TAG, "HandLandmarker unavailable on $delegate", e)
         null
+    } catch (e: LinkageError) {
+        // A broken native or static setup (ExceptionInInitializerError, UnsatisfiedLinkError):
+        // show the "hand tracking unavailable" state instead of closing the app.
+        Log.e(TAG, "HandLandmarker failed to load on $delegate", e)
+        null
     }
 
     override fun analyze(image: ImageProxy) {
