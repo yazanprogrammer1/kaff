@@ -67,7 +67,9 @@ private class MediaPipeHandTracker(context: Context) : HandTracker {
     @Volatile private var frameMirrored = true
 
     init {
-        landmarker = create(context, Delegate.GPU) ?: create(context, Delegate.CPU)
+        // CPU first: it works on every device, while the GPU delegate can crash in native code
+        // (out of reach of any catch) on some GPUs and emulators. One hand at 640×480 is light work.
+        landmarker = create(context, Delegate.CPU) ?: create(context, Delegate.GPU)
         _failed.value = landmarker == null
     }
 

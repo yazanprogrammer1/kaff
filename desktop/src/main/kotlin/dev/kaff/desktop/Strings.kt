@@ -7,6 +7,8 @@ interface Texts {
     val searchingTitle: String
     val searchingBody: String
     val searchingHint: String
+    val notFoundTitle: String
+    val notFoundBody: String
     val phonesFound: String
     val connect: String
     val waitingApproval: String
@@ -58,6 +60,8 @@ object Ar : Texts {
     override val searchingTitle = "نبحث عن جوالك…"
     override val searchingBody = "افتح كفّ في جوالك واضغط «إلى الكمبيوتر». بيظهر هنا لحاله."
     override val searchingHint = "الجوال والكمبيوتر على نفس الواي فاي، أو اتصل بشبكة كفّ تحت."
+    override val notFoundTitle = "الجوال ما ظهر؟"
+    override val notFoundBody = "بعض الراوترات تمنع الأجهزة من رؤية بعضها (عزل الأجهزة). الحل الأسرع: في جوالك، داخل شاشة «إلى الكمبيوتر»، اختر «شبكة كفّ»، وبتظهر هنا خلال ثواني."
     override val phonesFound = "جوالات قريبة"
     override val connect = "اتصال"
     override val waitingApproval = "وافق من جوالك"
@@ -109,6 +113,8 @@ object En : Texts {
     override val searchingTitle = "Looking for your phone…"
     override val searchingBody = "Open Kaff on your phone and tap \"To a computer\". It shows up here by itself."
     override val searchingHint = "Phone and computer on the same Wi-Fi, or join Kaff network below."
+    override val notFoundTitle = "Phone not showing up?"
+    override val notFoundBody = "Some routers stop devices from seeing each other (client isolation). The quickest fix: on your phone, in \"To a computer\", choose \"Kaff network\". It shows up here in a few seconds."
     override val phonesFound = "Nearby phones"
     override val connect = "Connect"
     override val waitingApproval = "Approve on your phone"

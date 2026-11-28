@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "dev.kaff"
-version = "1.0.0"
+version = "1.0.1"
 
 kotlin {
     jvmToolchain(21)
@@ -43,7 +43,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Msi)
             packageName = "Kaff"
-            packageVersion = "1.0.0"
+            packageVersion = "1.0.1"
             description = "Kaff for Windows: move files with your phone, no internet needed"
             vendor = "Kaff"
             copyright = "© 2026 Kaff"

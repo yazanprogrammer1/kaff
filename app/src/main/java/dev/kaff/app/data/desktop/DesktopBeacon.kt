@@ -1,5 +1,6 @@
 package dev.kaff.app.data.desktop
 
+import android.net.wifi.WifiManager
 import java.io.IOException
 import java.net.DatagramPacket
 import java.net.DatagramSocket
@@ -22,6 +23,8 @@ import kotlinx.serialization.json.put
  */
 class DesktopBeacon(
     private val scope: CoroutineScope,
+    /** Creates the Wi-Fi multicast lock that lets broadcasts through; null where there is none (tests). */
+    private val multicastLockFactory: () -> WifiManager.MulticastLock? = { null },
     private val answer: () -> Answer?,
 ) {
     /** [id] is stable for this phone (random, never derived from hardware), unlike its editable name. */
@@ -29,9 +32,15 @@ class DesktopBeacon(
 
     private var socket: DatagramSocket? = null
     private var job: Job? = null
+    private var multicastLock: WifiManager.MulticastLock? = null
 
     fun start() {
         if (job != null) return
+        // Most phones drop broadcast packets in the Wi-Fi chip to save power unless a lock is held,
+        // so without it the computer's "KAFF?" never arrives on home Wi-Fi.
+        multicastLock = runCatching {
+            multicastLockFactory()?.apply { setReferenceCounted(false); acquire() }
+        }.getOrNull()
         val created = try {
             DatagramSocket(null).apply {
                 reuseAddress = true
@@ -39,6 +48,8 @@ class DesktopBeacon(
                 bind(InetSocketAddress(PORT))
             }
         } catch (e: SocketException) {
+            runCatching { multicastLock?.release() }
+            multicastLock = null
             return
         }
         socket = created
@@ -46,6 +57,8 @@ class DesktopBeacon(
     }
 
     fun stop() {
+        runCatching { multicastLock?.release() }
+        multicastLock = null
         socket?.close()
         socket = null
         job?.cancel()

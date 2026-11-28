@@ -53,6 +53,8 @@
         tools:targetApi="33" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <!-- Lets the computer's discovery broadcast reach the phone while the computer screen is open. -->
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
 
     <application
         android:name=".KaffApp"

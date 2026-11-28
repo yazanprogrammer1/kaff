@@ -81,10 +81,34 @@ class Discovery(private val scope: CoroutineScope) {
         }
     }
 
+    private var sweeps = 0
+
     private fun ask(socket: DatagramSocket) {
         val question = "KAFF?".toByteArray()
-        targets().forEach { address ->
+        // Every other round, also ask each address of our own networks directly: many routers and
+        // phones drop broadcasts on home Wi-Fi, but nobody drops a plain unicast packet.
+        val addresses = if (sweeps++ % 2 == 0) targets() + sweepTargets() else targets()
+        addresses.forEach { address ->
             runCatching { socket.send(DatagramPacket(question, question.size, address, PORT)) }
+        }
+    }
+
+    /** Every host address of each IPv4 network this computer is on (subnets up to /22, 1022 hosts). */
+    private fun sweepTargets(): List<InetAddress> = runCatching {
+        NetworkInterface.getNetworkInterfaces().toList()
+            .filter { it.isUp && !it.isLoopback && !it.isVirtual }
+            .flatMap { it.interfaceAddresses }
+            .filter { it.address is Inet4Address && it.networkPrefixLength.toInt() in MIN_SWEEP_PREFIX..30 }
+            .flatMap { hostsOf(it.address as Inet4Address, it.networkPrefixLength.toInt()) }
+    }.getOrDefault(emptyList())
+
+    private fun hostsOf(address: Inet4Address, prefix: Int): List<InetAddress> {
+        val own = address.address.fold(0L) { acc, b -> (acc shl 8) or (b.toLong() and 0xFF) }
+        val mask = (0xFFFFFFFFL shl (32 - prefix)) and 0xFFFFFFFFL
+        val network = own and mask
+        val size = 1L shl (32 - prefix)
+        return (1L until size - 1).map { network + it }.filter { it != own }.map { ip ->
+            InetAddress.getByAddress(byteArrayOf((ip shr 24).toByte(), (ip shr 16).toByte(), (ip shr 8).toByte(), ip.toByte()))
         }
     }
 
@@ -107,5 +131,6 @@ class Discovery(private val scope: CoroutineScope) {
         const val KAFF_GROUP_OWNER = "192.168.49.1"
         private const val ASK_EVERY_MS = 2_000L
         private const val FORGET_AFTER_MS = 7_000L
+        private const val MIN_SWEEP_PREFIX = 22
     }
 }

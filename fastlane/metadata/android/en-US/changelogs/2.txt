@@ -1,0 +1,6 @@
+First release of Kaff:
+• Gesture transfer between phones, no internet
+• Kaff fast lane for big files
+• Transfers with a computer from its browser, nothing to install
+• Share from any app, plus text and links
+• A beautiful history that opens every file

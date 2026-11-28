@@ -1,6 +1,7 @@
 package dev.kaff.app.core.di
 
 import android.content.Context
+import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
@@ -16,6 +17,7 @@ import dev.kaff.app.data.power.AndroidPowerMonitor
 import dev.kaff.app.domain.repository.PowerMonitor
 import dev.kaff.app.domain.repository.SettingsRepository
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -47,7 +49,12 @@ object AppModule {
     @Singleton
     @ApplicationScope
     fun provideApplicationScope(@DefaultDispatcher dispatcher: CoroutineDispatcher): CoroutineScope =
-        CoroutineScope(SupervisorJob() + dispatcher)
+        // A failure in one background job (a transfer, the computer link, Wi-Fi Direct) must end
+        // that job only, never take the whole app down with it.
+        CoroutineScope(
+            SupervisorJob() + dispatcher +
+                CoroutineExceptionHandler { _, error -> Log.e("KaffScope", "Background job failed", error) },
+        )
 
     @Provides
     @IoDispatcher

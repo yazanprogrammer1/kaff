@@ -169,7 +169,10 @@ class DesktopHost @Inject constructor(
     private val page by lazy { context.assets.open("desktop/index.html").use { it.readBytes() } }
 
     /** Answers the desktop app's "KAFF?" so it finds this phone by itself. */
-    private val beacon = DesktopBeacon(scope) {
+    private val beacon = DesktopBeacon(
+        scope,
+        { context.getSystemService(WifiManager::class.java)?.createMulticastLock("kaff-beacon") },
+    ) {
         if (server == null) null else DesktopBeacon.Answer(phoneId, device.name.value, port, token, _state.value.hotspot?.ssid)
     }
 

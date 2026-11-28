@@ -127,12 +127,20 @@ private fun TopBar(controller: KaffController, phase: Phase, onToggleLanguage: (
 
 // region Searching
 
+private const val NOT_FOUND_AFTER_MS = 12_000L
+
 @Composable
 private fun Searching(controller: KaffController) {
     val t = Strings.t
     val phones by controller.discovery.phones.collectAsState()
     val networks by controller.kaffNetworks.collectAsState()
     val denied by controller.denied.collectAsState()
+    // Nothing after a while on the same Wi-Fi usually means the router isolates its devices.
+    var slow by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(NOT_FOUND_AFTER_MS)
+        slow = true
+    }
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -147,6 +155,15 @@ private fun Searching(controller: KaffController) {
             if (phones.isNotEmpty()) Label(t.phonesFound)
             phones.forEach { phone -> PhoneCard(phone) { controller.connect(phone) } }
             networks.forEach { ssid -> KaffNetworkCard(controller, ssid) }
+            if (slow && phones.isEmpty()) {
+                Column(
+                    Modifier.fillMaxWidth().clip(Card).background(K.surface).border(1.dp, K.primary.copy(alpha = 0.35f), Card).padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text(t.notFoundTitle, style = MaterialTheme.typography.titleMedium, color = K.text)
+                    Text(t.notFoundBody, style = MaterialTheme.typography.bodyMedium, color = K.subtle)
+                }
+            }
         }
         Text(t.searchingHint, style = MaterialTheme.typography.bodyMedium, color = K.muted, textAlign = TextAlign.Center)
     }

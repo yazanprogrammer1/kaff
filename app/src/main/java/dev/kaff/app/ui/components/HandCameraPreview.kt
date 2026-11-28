@@ -59,7 +59,13 @@ fun HandCameraPreview(
 
         providerFuture.addListener({
             if (disposed) return@addListener
-            val cameraProvider = providerFuture.get().also { provider = it }
+            // A device without a usable camera (or one held by another app) must not crash Kaff.
+            val cameraProvider = try {
+                providerFuture.get().also { provider = it }
+            } catch (e: Exception) {
+                Log.w(TAG, "Camera unavailable", e)
+                return@addListener
+            }
             val resolution = ResolutionSelector.Builder()
                 .setAspectRatioStrategy(AspectRatioStrategy.RATIO_4_3_FALLBACK_AUTO_STRATEGY)
                 .setResolutionStrategy(
@@ -80,7 +86,12 @@ fun HandCameraPreview(
                 .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
                 .build()
                 .also { it.setAnalyzer(analysisExecutor, analyzer) }
-            val front = cameraProvider.hasCamera(CameraSelector.DEFAULT_FRONT_CAMERA)
+            val front = runCatching { cameraProvider.hasCamera(CameraSelector.DEFAULT_FRONT_CAMERA) }.getOrDefault(false)
+            val back = runCatching { cameraProvider.hasCamera(CameraSelector.DEFAULT_BACK_CAMERA) }.getOrDefault(false)
+            if (!front && !back) {
+                Log.w(TAG, "No camera on this device")
+                return@addListener
+            }
             val selector = if (front) CameraSelector.DEFAULT_FRONT_CAMERA else CameraSelector.DEFAULT_BACK_CAMERA
             notifySelected(front)
             try {
@@ -90,9 +101,7 @@ fun HandCameraPreview(
                 } else {
                     cameraProvider.bindToLifecycle(lifecycleOwner, selector, analysis)
                 }
-            } catch (e: IllegalArgumentException) {
-                Log.w(TAG, "Camera bind failed", e)
-            } catch (e: IllegalStateException) {
+            } catch (e: RuntimeException) {
                 Log.w(TAG, "Camera bind failed", e)
             }
         }, ContextCompat.getMainExecutor(context))
